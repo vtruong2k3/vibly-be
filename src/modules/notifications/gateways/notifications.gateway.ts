@@ -1,7 +1,4 @@
-import {
-  WebSocketGateway,
-  WebSocketServer,
-} from '@nestjs/websockets';
+import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server } from 'socket.io';
 import { UseGuards } from '@nestjs/common';
 import { WsJwtGuard } from '../../../common/guards/ws-jwt.guard';

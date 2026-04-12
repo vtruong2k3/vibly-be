@@ -33,7 +33,17 @@ const POST_SELECT = {
   media: {
     select: {
       position: true,
-      mediaAsset: { select: { id: true, objectKey: true, bucket: true, mimeType: true, mediaType: true, width: true, height: true } },
+      mediaAsset: {
+        select: {
+          id: true,
+          objectKey: true,
+          bucket: true,
+          mimeType: true,
+          mediaType: true,
+          width: true,
+          height: true,
+        },
+      },
     },
     orderBy: { position: 'asc' as const },
   },
@@ -118,7 +128,12 @@ export class PostsService {
   }
 
   // GET /users/:id/posts
-  async getUserPosts(requestingUserId: string, authorId: string, cursor?: string, limit = 20) {
+  async getUserPosts(
+    requestingUserId: string,
+    authorId: string,
+    cursor?: string,
+    limit = 20,
+  ) {
     const take = Math.min(limit, 50);
 
     // Determine visibility based on relationship
@@ -132,7 +147,12 @@ export class PostsService {
         authorUserId: authorId,
         status: PostStatus.PUBLISHED,
         deletedAt: null,
-        visibility: { in: [...visibilityFilter, ...(requestingUserId === authorId ? [VisibilityLevel.PRIVATE] : [])] },
+        visibility: {
+          in: [
+            ...visibilityFilter,
+            ...(requestingUserId === authorId ? [VisibilityLevel.PRIVATE] : []),
+          ],
+        },
       },
       select: POST_SELECT,
       take,
@@ -188,7 +208,9 @@ export class PostsService {
     if (!existing) throw new NotFoundException('Reaction not found');
 
     await this.prisma.$transaction([
-      this.prisma.postReaction.delete({ where: { postId_userId: { postId, userId } } }),
+      this.prisma.postReaction.delete({
+        where: { postId_userId: { postId, userId } },
+      }),
       this.prisma.post.update({
         where: { id: postId },
         data: { reactionCount: { decrement: 1 } },
@@ -226,15 +248,27 @@ export class PostsService {
           reactionCount: true,
           replyCount: true,
           createdAt: true,
-          author: { select: { id: true, username: true, profile: { select: { displayName: true, avatarMediaId: true } } } },
+          author: {
+            select: {
+              id: true,
+              username: true,
+              profile: { select: { displayName: true, avatarMediaId: true } },
+            },
+          },
         },
       });
 
       // Increment counters
-      await tx.post.update({ where: { id: postId }, data: { commentCount: { increment: 1 } } });
+      await tx.post.update({
+        where: { id: postId },
+        data: { commentCount: { increment: 1 } },
+      });
 
       if (dto.parentCommentId) {
-        await tx.comment.update({ where: { id: dto.parentCommentId }, data: { replyCount: { increment: 1 } } });
+        await tx.comment.update({
+          where: { id: dto.parentCommentId },
+          data: { replyCount: { increment: 1 } },
+        });
       }
 
       return newComment;
@@ -261,7 +295,13 @@ export class PostsService {
         replyCount: true,
         createdAt: true,
         updatedAt: true,
-        author: { select: { id: true, username: true, profile: { select: { displayName: true, avatarMediaId: true } } } },
+        author: {
+          select: {
+            id: true,
+            username: true,
+            profile: { select: { displayName: true, avatarMediaId: true } },
+          },
+        },
       },
       take,
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
@@ -271,7 +311,8 @@ export class PostsService {
     return {
       data: comments,
       meta: {
-        nextCursor: comments.length === take ? comments[comments.length - 1].id : null,
+        nextCursor:
+          comments.length === take ? comments[comments.length - 1].id : null,
         count: comments.length,
       },
     };
@@ -340,17 +381,26 @@ export class PostsService {
     return post;
   }
 
-  private async assertCanView(requestingUserId: string, authorId: string, visibility: VisibilityLevel) {
+  private async assertCanView(
+    requestingUserId: string,
+    authorId: string,
+    visibility: VisibilityLevel,
+  ) {
     if (requestingUserId === authorId) return; // Author can always view own posts
     if (visibility === VisibilityLevel.PUBLIC) return;
-    if (visibility === VisibilityLevel.PRIVATE) throw new ForbiddenException('This post is private');
+    if (visibility === VisibilityLevel.PRIVATE)
+      throw new ForbiddenException('This post is private');
 
     // FRIENDS visibility: check friendship
     const isFriend = await this.checkFriendship(requestingUserId, authorId);
-    if (!isFriend) throw new ForbiddenException('This post is only visible to friends');
+    if (!isFriend)
+      throw new ForbiddenException('This post is only visible to friends');
   }
 
-  private async checkFriendship(userId: string, friendId: string): Promise<boolean> {
+  private async checkFriendship(
+    userId: string,
+    friendId: string,
+  ): Promise<boolean> {
     if (userId === friendId) return true;
     const friendship = await this.prisma.friendship.findUnique({
       where: { userId_friendId: { userId, friendId } },

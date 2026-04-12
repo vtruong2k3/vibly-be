@@ -8,7 +8,12 @@ import {
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiCookieAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiCookieAuth,
+} from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from '../services/auth.service';
 import { RegisterDto } from '../dto/register.dto';
@@ -41,7 +46,11 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 requests per minute
   @ApiOperation({ summary: 'Login with email and password' })
-  login(@Body() dto: LoginDto, @Req() req: Record<string, unknown>, @Res({ passthrough: true }) res: Record<string, unknown>) {
+  login(
+    @Body() dto: LoginDto,
+    @Req() req: Record<string, unknown>,
+    @Res({ passthrough: true }) res: Record<string, unknown>,
+  ) {
     return this.authService.login(dto, req as never, res as never);
   }
 
@@ -51,17 +60,28 @@ export class AuthController {
   @Throttle({ default: { limit: 20, ttl: 60000 } })
   @ApiOperation({ summary: 'Refresh access token using HttpOnly cookie' })
   @ApiCookieAuth('__Host-refresh')
-  refresh(@Req() req: Record<string, unknown>, @Res({ passthrough: true }) res: Record<string, unknown>) {
+  refresh(
+    @Req() req: Record<string, unknown>,
+    @Res({ passthrough: true }) res: Record<string, unknown>,
+  ) {
     const cookieMap = req['cookies'] as Record<string, string> | undefined;
-    const cookieRefreshToken = cookieMap?.['__Host-refresh'] ?? cookieMap?.['refresh'];
-    return this.authService.refresh(cookieRefreshToken ?? '', req as never, res as never);
+    const cookieRefreshToken =
+      cookieMap?.['__Host-refresh'] ?? cookieMap?.['refresh'];
+    return this.authService.refresh(
+      cookieRefreshToken ?? '',
+      req as never,
+      res as never,
+    );
   }
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Logout current device session' })
   @ApiBearerAuth('access-token')
-  logout(@CurrentUser() user: JwtPayload, @Res({ passthrough: true }) res: Record<string, unknown>) {
+  logout(
+    @CurrentUser() user: JwtPayload,
+    @Res({ passthrough: true }) res: Record<string, unknown>,
+  ) {
     return this.authService.logout(user.sessionId, res as never);
   }
 
@@ -69,7 +89,10 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Logout all device sessions' })
   @ApiBearerAuth('access-token')
-  logoutAll(@CurrentUser() user: JwtPayload, @Res({ passthrough: true }) res: Record<string, unknown>) {
+  logoutAll(
+    @CurrentUser() user: JwtPayload,
+    @Res({ passthrough: true }) res: Record<string, unknown>,
+  ) {
     return this.authService.logoutAll(user.sub, res as never);
   }
 

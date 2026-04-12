@@ -1,4 +1,12 @@
-import { Controller, Get, Patch, Body, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Patch,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { UsersService } from '../services/users.service';
 import { ProfilesService } from '../../profiles/services/profiles.service';
@@ -36,7 +44,10 @@ export class UsersController {
   // PATCH /me/profile
   @Patch('me/profile')
   @ApiOperation({ summary: 'Update profile info (bio, avatar, cover...)' })
-  updateProfile(@CurrentUser() user: JwtPayload, @Body() dto: UpdateProfileDto) {
+  updateProfile(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: UpdateProfileDto,
+  ) {
     return this.profilesService.updateProfile(user.sub, dto);
   }
 

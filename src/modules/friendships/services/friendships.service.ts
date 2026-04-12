@@ -16,7 +16,9 @@ export class FriendshipsService {
   // POST /friends/request
   async sendRequest(requesterId: string, dto: SendFriendRequestDto) {
     if (requesterId === dto.addresseeId) {
-      throw new BadRequestException('You cannot send a friend request to yourself');
+      throw new BadRequestException(
+        'You cannot send a friend request to yourself',
+      );
     }
 
     // Check addressee exists
@@ -38,9 +40,12 @@ export class FriendshipsService {
 
     // Check already friends
     const friendship = await this.prisma.friendship.findUnique({
-      where: { userId_friendId: { userId: requesterId, friendId: dto.addresseeId } },
+      where: {
+        userId_friendId: { userId: requesterId, friendId: dto.addresseeId },
+      },
     });
-    if (friendship) throw new ConflictException('Already friends with this user');
+    if (friendship)
+      throw new ConflictException('Already friends with this user');
 
     // Check existing pending request
     const existing = await this.prisma.friendRequest.findFirst({
@@ -69,7 +74,11 @@ export class FriendshipsService {
   // POST /friends/:requestId/accept
   async acceptRequest(userId: string, requestId: string) {
     const request = await this.prisma.friendRequest.findFirst({
-      where: { id: requestId, addresseeId: userId, status: FriendRequestStatus.PENDING },
+      where: {
+        id: requestId,
+        addresseeId: userId,
+        status: FriendRequestStatus.PENDING,
+      },
     });
     if (!request) throw new NotFoundException('Friend request not found');
 
@@ -96,7 +105,11 @@ export class FriendshipsService {
   // POST /friends/:requestId/reject
   async rejectRequest(userId: string, requestId: string) {
     const request = await this.prisma.friendRequest.findFirst({
-      where: { id: requestId, addresseeId: userId, status: FriendRequestStatus.PENDING },
+      where: {
+        id: requestId,
+        addresseeId: userId,
+        status: FriendRequestStatus.PENDING,
+      },
     });
     if (!request) throw new NotFoundException('Friend request not found');
 
@@ -118,7 +131,12 @@ export class FriendshipsService {
     // Remove both directions
     await this.prisma.$transaction([
       this.prisma.friendship.deleteMany({
-        where: { OR: [{ userId, friendId }, { userId: friendId, friendId: userId }] },
+        where: {
+          OR: [
+            { userId, friendId },
+            { userId: friendId, friendId: userId },
+          ],
+        },
       }),
     ]);
 
@@ -131,7 +149,9 @@ export class FriendshipsService {
       throw new BadRequestException('Cannot block yourself');
     }
 
-    const blockedUser = await this.prisma.user.findUnique({ where: { id: blockedId } });
+    const blockedUser = await this.prisma.user.findUnique({
+      where: { id: blockedId },
+    });
     if (!blockedUser) throw new NotFoundException('User not found');
 
     const existing = await this.prisma.userBlock.findUnique({
@@ -210,7 +230,10 @@ export class FriendshipsService {
         friendsSince: f.createdAt,
       })),
       meta: {
-        nextCursor: friendships.length === take ? friendships[friendships.length - 1].id : null,
+        nextCursor:
+          friendships.length === take
+            ? friendships[friendships.length - 1].id
+            : null,
         count: friendships.length,
       },
     };

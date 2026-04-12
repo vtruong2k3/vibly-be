@@ -20,13 +20,16 @@ export class CallsGateway {
   server: Server;
 
   // Server → Callee: Notify an incoming call
-  notifyIncomingCall(calleeUserId: string, payload: {
-    callSessionId: string;
-    callType: string;
-    callerUserId: string;
-    callerUsername: string;
-    roomName: string;
-  }) {
+  notifyIncomingCall(
+    calleeUserId: string,
+    payload: {
+      callSessionId: string;
+      callType: string;
+      callerUserId: string;
+      callerUsername: string;
+      roomName: string;
+    },
+  ) {
     this.server.to(`user:${calleeUserId}`).emit('call:incoming', payload);
   }
 
@@ -37,20 +40,33 @@ export class CallsGateway {
   }
 
   // Server → All participants: Call was rejected
-  notifyCallRejected(participantUserIds: string[], callSessionId: string, rejectedBy: string) {
+  notifyCallRejected(
+    participantUserIds: string[],
+    callSessionId: string,
+    rejectedBy: string,
+  ) {
     const rooms = participantUserIds.map((id) => `user:${id}`);
     this.server.to(rooms).emit('call:rejected', { callSessionId, rejectedBy });
   }
 
   // Server → All participants: Call ended
-  notifyCallEnded(participantUserIds: string[], callSessionId: string, durationSeconds: number) {
+  notifyCallEnded(
+    participantUserIds: string[],
+    callSessionId: string,
+    durationSeconds: number,
+  ) {
     const rooms = participantUserIds.map((id) => `user:${id}`);
-    this.server.to(rooms).emit('call:ended', { callSessionId, durationSeconds });
+    this.server
+      .to(rooms)
+      .emit('call:ended', { callSessionId, durationSeconds });
   }
 
   // Client → Self cancel before pick up
   @SubscribeMessage('call:cancel')
-  handleCallCancel(@ConnectedSocket() client: Socket, @MessageBody() callSessionId: string) {
+  handleCallCancel(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() callSessionId: string,
+  ) {
     const user: JwtPayload = client.data.user;
     // Broadcast cancel to all in personal rooms (CallsService will handle DB)
     this.server.emit('call:canceled', { callSessionId, canceledBy: user.sub });

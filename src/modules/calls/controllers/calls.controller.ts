@@ -23,21 +23,30 @@ export class CallsController {
   // POST /calls/:id/token — Rejoin or receive token after accepting
   @Post(':id/token')
   @ApiOperation({ summary: 'Get LiveKit token for a call session' })
-  getCallToken(@CurrentUser() user: JwtPayload, @Param('id') callSessionId: string) {
+  getCallToken(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') callSessionId: string,
+  ) {
     return this.callsService.getCallToken(user.sub, callSessionId);
   }
 
   // POST /calls/:id/accept
   @Post(':id/accept')
   @ApiOperation({ summary: 'Accept an incoming call' })
-  acceptCall(@CurrentUser() user: JwtPayload, @Param('id') callSessionId: string) {
+  acceptCall(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') callSessionId: string,
+  ) {
     return this.callsService.acceptCall(user.sub, callSessionId);
   }
 
   // POST /calls/:id/reject
   @Post(':id/reject')
   @ApiOperation({ summary: 'Reject an incoming call' })
-  rejectCall(@CurrentUser() user: JwtPayload, @Param('id') callSessionId: string) {
+  rejectCall(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') callSessionId: string,
+  ) {
     return this.callsService.rejectCall(user.sub, callSessionId);
   }
 
@@ -51,7 +60,10 @@ export class CallsController {
   // GET /calls/:id
   @Get(':id')
   @ApiOperation({ summary: 'Get call session details' })
-  getCallSession(@CurrentUser() user: JwtPayload, @Param('id') callSessionId: string) {
+  getCallSession(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') callSessionId: string,
+  ) {
     return this.callsService.getCallSession(user.sub, callSessionId);
   }
 }

@@ -1,15 +1,26 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 import { PrismaService } from '../../../database/prisma/prisma.service';
 import { PostStatus, VisibilityLevel } from '@prisma/client';
 
 @Injectable()
 export class FeedService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+  ) {}
 
   // GET /feed?cursor= — Friend activity feed with cursor pagination
   // Plan: fan-out-on-write via feed_edges (Phase 2 build)
   async getFeed(userId: string, cursor?: string, limit = 20) {
     const take = Math.min(limit, 50);
+    const cacheKey = `feed:${userId}:${cursor ?? 'initial'}:${take}`;
+
+    const cachedFeed = await this.cacheManager.get(cacheKey);
+    if (cachedFeed) {
+      return cachedFeed;
+    }
 
     // Phase 1 fallback: direct query from friends' posts (no feed_edges yet)
     // Phase 2 upgrade: read from feed_edges table for true fan-out
@@ -48,7 +59,17 @@ export class FeedService {
         media: {
           select: {
             position: true,
-            mediaAsset: { select: { id: true, objectKey: true, bucket: true, mimeType: true, mediaType: true, width: true, height: true } },
+            mediaAsset: {
+              select: {
+                id: true,
+                objectKey: true,
+                bucket: true,
+                mimeType: true,
+                mediaType: true,
+                width: true,
+                height: true,
+              },
+            },
           },
           orderBy: { position: 'asc' },
         },
@@ -67,7 +88,7 @@ export class FeedService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return {
+    const result = {
       data: posts.map((p) => ({
         ...p,
         myReaction: p.reactions[0]?.reactionType ?? null,
@@ -80,6 +101,11 @@ export class FeedService {
         count: posts.length,
       },
     };
+
+    // Cache the result for 30 seconds
+    await this.cacheManager.set(cacheKey, result, 30000);
+
+    return result;
   }
 
   // POST /posts/:id/save
@@ -114,7 +140,11 @@ export class FeedService {
             reactionCount: true,
             createdAt: true,
             author: {
-              select: { id: true, username: true, profile: { select: { displayName: true, avatarMediaId: true } } },
+              select: {
+                id: true,
+                username: true,
+                profile: { select: { displayName: true, avatarMediaId: true } },
+              },
             },
           },
         },
@@ -124,7 +154,11 @@ export class FeedService {
       orderBy: { createdAt: 'desc' },
     });
 
-    const validSaves = saves.filter((s) => s.post.visibility !== VisibilityLevel.PRIVATE || s.post.author.id === userId);
+    const validSaves = saves.filter(
+      (s) =>
+        s.post.visibility !== VisibilityLevel.PRIVATE ||
+        s.post.author.id === userId,
+    );
 
     return {
       data: validSaves.map((s) => s.post),

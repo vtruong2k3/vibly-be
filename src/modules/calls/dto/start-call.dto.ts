@@ -1,4 +1,10 @@
-import { IsEnum, IsArray, IsUUID, IsOptional, ArrayMinSize } from 'class-validator';
+import {
+  IsEnum,
+  IsArray,
+  IsUUID,
+  IsOptional,
+  ArrayMinSize,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CallType } from '@prisma/client';
 
@@ -12,7 +18,10 @@ export class StartCallDto {
   @IsUUID()
   conversationId?: string;
 
-  @ApiProperty({ type: [String], description: 'UUIDs of participants to invite' })
+  @ApiProperty({
+    type: [String],
+    description: 'UUIDs of participants to invite',
+  })
   @IsArray()
   @IsUUID('all', { each: true })
   @ArrayMinSize(1)

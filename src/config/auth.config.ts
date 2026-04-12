@@ -9,7 +9,7 @@ export const authConfig = registerAs('auth', () => ({
   jwtRefreshExpiry: '30d',
   // Cookie name: __Host- prefix prevents subdomain attacks (OWASP)
   refreshCookieName: '__Host-refresh',
-  argon2MemoryCost: 65536,   // 64MB
+  argon2MemoryCost: 65536, // 64MB
   argon2TimeCost: 3,
   argon2Parallelism: 4,
 }));

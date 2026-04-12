@@ -49,7 +49,13 @@ export class MediaService {
         sizeBytes: dto.sizeBytes ?? 0,
         status: MediaStatus.UPLOADING,
       },
-      select: { id: true, objectKey: true, bucket: true, mimeType: true, status: true },
+      select: {
+        id: true,
+        objectKey: true,
+        bucket: true,
+        mimeType: true,
+        status: true,
+      },
     });
 
     // Generate short-lived presigned URL for direct S3 upload
@@ -78,7 +84,11 @@ export class MediaService {
   // PATCH /media/:id/confirm — Mark upload as READY after client confirms upload success
   async confirmUpload(userId: string, mediaAssetId: string) {
     const asset = await this.prisma.mediaAsset.findFirst({
-      where: { id: mediaAssetId, ownerUserId: userId, status: MediaStatus.UPLOADING },
+      where: {
+        id: mediaAssetId,
+        ownerUserId: userId,
+        status: MediaStatus.UPLOADING,
+      },
     });
 
     if (!asset) {

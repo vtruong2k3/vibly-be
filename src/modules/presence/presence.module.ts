@@ -6,10 +6,7 @@ import { PresenceController } from './controllers/presence.controller';
 import { FriendshipsModule } from '../friendships/friendships.module';
 
 @Module({
-  imports: [
-    JwtModule.register({}),
-    forwardRef(() => FriendshipsModule),
-  ],
+  imports: [JwtModule.register({}), forwardRef(() => FriendshipsModule)],
   controllers: [PresenceController],
   providers: [PresenceGateway, PresenceService],
   exports: [PresenceService, PresenceGateway],

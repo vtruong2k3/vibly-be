@@ -33,8 +33,13 @@ export class NotificationsService {
         metadata: data.metadata,
       },
       include: {
-        actor: { select: { username: true, profile: { select: { displayName: true, avatarMediaId: true } } } }
-      }
+        actor: {
+          select: {
+            username: true,
+            profile: { select: { displayName: true, avatarMediaId: true } },
+          },
+        },
+      },
     });
 
     this.notificationsGateway.broadcastNotification(data.userId, notification);
@@ -49,21 +54,29 @@ export class NotificationsService {
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       orderBy: { createdAt: 'desc' },
       include: {
-        actor: { select: { username: true, profile: { select: { displayName: true, avatarMediaId: true } } } }
-      }
+        actor: {
+          select: {
+            username: true,
+            profile: { select: { displayName: true, avatarMediaId: true } },
+          },
+        },
+      },
     });
 
     return {
       data: notifications,
       meta: {
-        nextCursor: notifications.length === take ? notifications[notifications.length - 1].id : null,
-      }
+        nextCursor:
+          notifications.length === take
+            ? notifications[notifications.length - 1].id
+            : null,
+      },
     };
   }
 
   async markAsRead(userId: string, notificationId: string) {
     const notification = await this.prisma.notification.findUnique({
-      where: { id: notificationId }
+      where: { id: notificationId },
     });
     if (!notification || notification.userId !== userId) {
       throw new NotFoundException('Notification not found');
@@ -71,14 +84,14 @@ export class NotificationsService {
 
     return this.prisma.notification.update({
       where: { id: notificationId },
-      data: { isRead: true, readAt: new Date() }
+      data: { isRead: true, readAt: new Date() },
     });
   }
 
   async markAllAsRead(userId: string) {
     await this.prisma.notification.updateMany({
       where: { userId, isRead: false },
-      data: { isRead: true, readAt: new Date() }
+      data: { isRead: true, readAt: new Date() },
     });
     return { message: 'All notifications marked as read' };
   }

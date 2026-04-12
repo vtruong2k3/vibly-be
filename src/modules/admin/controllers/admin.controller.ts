@@ -1,5 +1,18 @@
-import { Controller, Get, Patch, Body, Param, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Patch,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { AdminService } from '../services/admin.service';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
@@ -78,7 +91,10 @@ export class AdminController {
   // GET /admin/audit-logs
   @Get('audit-logs')
   @ApiOperation({ summary: '[Admin] View audit log trail' })
-  getAuditLogs(@Query('cursor') cursor?: string, @Query('limit') limit?: number) {
+  getAuditLogs(
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: number,
+  ) {
     return this.adminService.getAuditLogs(cursor, limit);
   }
 }

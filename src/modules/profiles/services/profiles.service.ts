@@ -20,8 +20,12 @@ export class ProfilesService {
         ...(dto.hometown !== undefined && { hometown: dto.hometown }),
         ...(dto.currentCity !== undefined && { currentCity: dto.currentCity }),
         ...(dto.website !== undefined && { website: dto.website }),
-        ...(dto.avatarMediaId !== undefined && { avatarMediaId: dto.avatarMediaId }),
-        ...(dto.coverMediaId !== undefined && { coverMediaId: dto.coverMediaId }),
+        ...(dto.avatarMediaId !== undefined && {
+          avatarMediaId: dto.avatarMediaId,
+        }),
+        ...(dto.coverMediaId !== undefined && {
+          coverMediaId: dto.coverMediaId,
+        }),
       },
     });
   }
@@ -30,8 +34,12 @@ export class ProfilesService {
     const profile = await this.prisma.profile.findUnique({
       where: { userId },
       include: {
-        avatarMedia: { select: { id: true, objectKey: true, bucket: true, mimeType: true } },
-        coverMedia:  { select: { id: true, objectKey: true, bucket: true, mimeType: true } },
+        avatarMedia: {
+          select: { id: true, objectKey: true, bucket: true, mimeType: true },
+        },
+        coverMedia: {
+          select: { id: true, objectKey: true, bucket: true, mimeType: true },
+        },
       },
     });
     if (!profile) throw new NotFoundException('Profile not found');

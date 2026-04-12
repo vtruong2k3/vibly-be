@@ -30,7 +30,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
       if (typeof exceptionResponse === 'string') {
         message = exceptionResponse;
         code = this.resolveCode(statusCode);
-      } else if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
+      } else if (
+        typeof exceptionResponse === 'object' &&
+        exceptionResponse !== null
+      ) {
         const exObj = exceptionResponse as Record<string, unknown>;
         message = (exObj.message as string) ?? message;
         code = (exObj.code as string) ?? this.resolveCode(statusCode);

@@ -1,4 +1,13 @@
-import { IsString, IsArray, IsOptional, IsEnum, MaxLength, MinLength, ArrayMinSize, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsArray,
+  IsOptional,
+  IsEnum,
+  MaxLength,
+  MinLength,
+  ArrayMinSize,
+  IsUUID,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ConversationType } from '@prisma/client';
 
@@ -7,7 +16,10 @@ export class CreateConversationDto {
   @IsEnum(ConversationType)
   type: ConversationType;
 
-  @ApiPropertyOptional({ example: 'Weekend Trip', description: 'Required for GROUP type' })
+  @ApiPropertyOptional({
+    example: 'Weekend Trip',
+    description: 'Required for GROUP type',
+  })
   @IsOptional()
   @IsString()
   @MinLength(1)

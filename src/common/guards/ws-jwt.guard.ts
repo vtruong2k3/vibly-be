@@ -1,4 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Socket } from 'socket.io';
@@ -18,14 +23,17 @@ export class WsJwtGuard implements CanActivate {
     let token: string | undefined = client.handshake.auth?.token;
 
     if (!token && client.handshake.headers.authorization) {
-      const [type, extractedToken] = client.handshake.headers.authorization.split(' ');
+      const [type, extractedToken] =
+        client.handshake.headers.authorization.split(' ');
       if (type === 'Bearer') {
         token = extractedToken;
       }
     }
 
     if (!token) {
-      throw new UnauthorizedException('Missing authentication token for WebSocket');
+      throw new UnauthorizedException(
+        'Missing authentication token for WebSocket',
+      );
     }
 
     try {

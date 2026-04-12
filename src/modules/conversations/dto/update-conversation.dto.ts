@@ -8,7 +8,7 @@ export class UpdateConversationDto {
   @MinLength(1)
   @MaxLength(100)
   name?: string;
-  
+
   @ApiPropertyOptional({ description: 'UUID of new avatar media' })
   @IsOptional()
   @IsString()

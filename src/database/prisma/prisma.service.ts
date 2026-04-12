@@ -1,4 +1,9 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
@@ -6,7 +11,10 @@ import { Pool } from 'pg';
 // Prisma 7: "client" engine mode requires a Driver Adapter
 // We use @prisma/adapter-pg backed by the native `pg` Pool
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(PrismaService.name);
 
   constructor() {
@@ -24,7 +32,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   async onModuleInit() {
     try {
       await this.$connect();
-      this.logger.log('Successfully connected to Postgres via Prisma (pg adapter)');
+      this.logger.log(
+        'Successfully connected to Postgres via Prisma (pg adapter)',
+      );
     } catch (error) {
       this.logger.error('Failed to connect to the database', error);
       throw error;

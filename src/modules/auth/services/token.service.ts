@@ -40,7 +40,10 @@ export class TokenService {
 
   // Set __Host-refresh cookie (OWASP: HttpOnly, Secure, SameSite=Lax, no Domain)
   setRefreshCookie(res: Response, token: string, expiresAt: Date): void {
-    const cookieName = this.config.get<string>('auth.refreshCookieName', '__Host-refresh');
+    const cookieName = this.config.get<string>(
+      'auth.refreshCookieName',
+      '__Host-refresh',
+    );
 
     res.cookie(cookieName, token, {
       httpOnly: true,
@@ -54,8 +57,16 @@ export class TokenService {
 
   // Clear refresh token cookie on logout
   clearRefreshCookie(res: Response): void {
-    const cookieName = this.config.get<string>('auth.refreshCookieName', '__Host-refresh');
-    res.clearCookie(cookieName, { httpOnly: true, secure: true, sameSite: 'lax', path: '/' });
+    const cookieName = this.config.get<string>(
+      'auth.refreshCookieName',
+      '__Host-refresh',
+    );
+    res.clearCookie(cookieName, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      path: '/',
+    });
   }
 
   verifyAccessToken(token: string): AccessTokenPayload {

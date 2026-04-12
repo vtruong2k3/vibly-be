@@ -14,12 +14,18 @@ export class RedisIoAdapter extends IoAdapter {
 
   async connectToRedis(): Promise<void> {
     const configService = this.app.get(ConfigService);
-    const redisUrl = configService.get<string>('redis.url', 'redis://localhost:6379');
+    const redisUrl = configService.get<string>(
+      'redis.url',
+      'redis://localhost:6379',
+    );
 
     const pubClient = new Redis(redisUrl);
     const subClient = pubClient.duplicate();
 
-    await Promise.all([pubClient.connect().catch(() => {}), subClient.connect().catch(() => {})]);
+    await Promise.all([
+      pubClient.connect().catch(() => {}),
+      subClient.connect().catch(() => {}),
+    ]);
 
     // Handle Redis connection errors gracefully in logs
     pubClient.on('error', (err) => console.error('Redis PubClient Error', err));

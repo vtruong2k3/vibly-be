@@ -60,14 +60,24 @@ export class MessagesGateway {
 
   // --- Called internally by MessagesService ---
   broadcastNewMessage(conversationId: string, message: any) {
-    this.server.to(`conversation:${conversationId}`).emit('new_message', message);
+    this.server
+      .to(`conversation:${conversationId}`)
+      .emit('new_message', message);
   }
 
-  broadcastMessageUpdate(conversationId: string, messageId: string, content: string) {
-    this.server.to(`conversation:${conversationId}`).emit('message_updated', { messageId, content });
+  broadcastMessageUpdate(
+    conversationId: string,
+    messageId: string,
+    content: string,
+  ) {
+    this.server
+      .to(`conversation:${conversationId}`)
+      .emit('message_updated', { messageId, content });
   }
 
   broadcastMessageDelete(conversationId: string, messageId: string) {
-    this.server.to(`conversation:${conversationId}`).emit('message_deleted', { messageId });
+    this.server
+      .to(`conversation:${conversationId}`)
+      .emit('message_deleted', { messageId });
   }
 }

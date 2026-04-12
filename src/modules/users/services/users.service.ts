@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma/prisma.service';
 import { UserStatus } from '@prisma/client';
 import { UpdateUserDto } from '../dto/update-user.dto';
@@ -50,7 +55,11 @@ export class UsersService {
   async updateMe(userId: string, dto: UpdateUserDto) {
     if (dto.username) {
       const exists = await this.prisma.user.findFirst({
-        where: { username: dto.username.toLowerCase(), NOT: { id: userId }, deletedAt: null },
+        where: {
+          username: dto.username.toLowerCase(),
+          NOT: { id: userId },
+          deletedAt: null,
+        },
       });
       if (exists) throw new ConflictException('Username is already taken');
     }
@@ -60,7 +69,13 @@ export class UsersService {
       data: {
         ...(dto.username && { username: dto.username.toLowerCase() }),
       },
-      select: { id: true, email: true, username: true, role: true, updatedAt: true },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        role: true,
+        updatedAt: true,
+      },
     });
   }
 
@@ -84,7 +99,11 @@ export class UsersService {
           },
         },
         privacySettings: {
-          select: { profileVisibility: true, friendListVisibility: true, showOnlineStatus: true },
+          select: {
+            profileVisibility: true,
+            friendListVisibility: true,
+            showOnlineStatus: true,
+          },
         },
       },
     });
@@ -120,7 +139,9 @@ export class UsersService {
         NOT: { id: requestingUserId },
         OR: [
           { username: { contains: query, mode: 'insensitive' } },
-          { profile: { displayName: { contains: query, mode: 'insensitive' } } },
+          {
+            profile: { displayName: { contains: query, mode: 'insensitive' } },
+          },
         ],
       },
       select: {

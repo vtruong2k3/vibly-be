@@ -2,7 +2,13 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma/prisma.service';
 import { CreateReportDto } from '../dto/create-report.dto';
 import { ModerationActionDto } from '../dto/moderation-action.dto';
-import { ModerationActionType, ReportStatus, UserStatus, PostStatus, CommentStatus } from '@prisma/client';
+import {
+  ModerationActionType,
+  ReportStatus,
+  UserStatus,
+  PostStatus,
+  CommentStatus,
+} from '@prisma/client';
 
 @Injectable()
 export class ModerationService {
@@ -22,7 +28,9 @@ export class ModerationService {
       },
     });
     if (existing) {
-      throw new BadRequestException('You already have an active report on this entity');
+      throw new BadRequestException(
+        'You already have an active report on this entity',
+      );
     }
 
     const report = await this.prisma.report.create({
@@ -35,7 +43,9 @@ export class ModerationService {
       },
     });
 
-    this.logger.log(`Report ${report.id} created by ${reporterUserId} on ${dto.targetType}:${dto.targetId}`);
+    this.logger.log(
+      `Report ${report.id} created by ${reporterUserId} on ${dto.targetType}:${dto.targetId}`,
+    );
     return report;
   }
 
@@ -56,7 +66,8 @@ export class ModerationService {
     return {
       data: reports,
       meta: {
-        nextCursor: reports.length === take ? reports[reports.length - 1].id : null,
+        nextCursor:
+          reports.length === take ? reports[reports.length - 1].id : null,
       },
     };
   }
@@ -90,7 +101,7 @@ export class ModerationService {
     });
 
     this.logger.log(
-      `Moderator ${moderatorUserId} applied ${dto.actionType} on ${dto.targetType}:${dto.targetId}`
+      `Moderator ${moderatorUserId} applied ${dto.actionType} on ${dto.targetType}:${dto.targetId}`,
     );
     return action;
   }

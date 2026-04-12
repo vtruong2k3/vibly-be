@@ -13,16 +13,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     JwtModule.register({}), // Secret configured per-call in TokenService (allows multi-secret)
   ],
   controllers: [AuthController],
-  providers: [
-    AuthService,
-    PasswordService,
-    TokenService,
-    JwtStrategy,
-  ],
-  exports: [
-    PasswordService,
-    TokenService,
-    JwtStrategy,
-  ],
+  providers: [AuthService, PasswordService, TokenService, JwtStrategy],
+  exports: [PasswordService, TokenService, JwtStrategy],
 })
 export class AuthModule {}

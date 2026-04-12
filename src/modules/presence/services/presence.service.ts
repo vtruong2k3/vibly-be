@@ -7,7 +7,10 @@ export class PresenceService implements OnModuleDestroy {
   private readonly redis: Redis;
 
   constructor(private configService: ConfigService) {
-    const redisUrl = this.configService.get<string>('redis.url', 'redis://localhost:6379');
+    const redisUrl = this.configService.get<string>(
+      'redis.url',
+      'redis://localhost:6379',
+    );
     this.redis = new Redis(redisUrl);
   }
 
@@ -42,7 +45,7 @@ export class PresenceService implements OnModuleDestroy {
       pipeline.scard(`user:online:${id}`);
     }
     const results = await pipeline.exec();
-    
+
     const statuses: Record<string, boolean> = {};
     if (results) {
       userIds.forEach((id, index) => {

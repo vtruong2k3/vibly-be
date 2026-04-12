@@ -44,7 +44,9 @@ export class AdminService {
 
     return {
       data: users,
-      meta: { nextCursor: users.length === take ? users[users.length - 1].id : null },
+      meta: {
+        nextCursor: users.length === take ? users[users.length - 1].id : null,
+      },
     };
   }
 
@@ -56,12 +58,22 @@ export class AdminService {
       select: { id: true, username: true, role: true },
     });
 
-    await this.writeAuditLog(adminId, 'UPDATE_USER_ROLE', 'USER', targetUserId, { newRole: role });
+    await this.writeAuditLog(
+      adminId,
+      'UPDATE_USER_ROLE',
+      'USER',
+      targetUserId,
+      { newRole: role },
+    );
     return user;
   }
 
   // PATCH /admin/users/:id/status — Suspend or reactivate user
-  async updateUserStatus(adminId: string, targetUserId: string, status: UserStatus) {
+  async updateUserStatus(
+    adminId: string,
+    targetUserId: string,
+    status: UserStatus,
+  ) {
     const user = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.user.update({
         where: { id: targetUserId },
@@ -80,7 +92,13 @@ export class AdminService {
       return updated;
     });
 
-    await this.writeAuditLog(adminId, 'UPDATE_USER_STATUS', 'USER', targetUserId, { newStatus: status });
+    await this.writeAuditLog(
+      adminId,
+      'UPDATE_USER_STATUS',
+      'USER',
+      targetUserId,
+      { newStatus: status },
+    );
     return user;
   }
 
@@ -98,18 +116,23 @@ export class AdminService {
 
     return {
       data: logs,
-      meta: { nextCursor: logs.length === take ? logs[logs.length - 1].id : null },
+      meta: {
+        nextCursor: logs.length === take ? logs[logs.length - 1].id : null,
+      },
     };
   }
 
   // GET /admin/stats — Platform stats dashboard
   async getStats() {
-    const [totalUsers, activeUsers, totalPosts, openReports] = await Promise.all([
-      this.prisma.user.count(),
-      this.prisma.user.count({ where: { status: 'ACTIVE' } }),
-      this.prisma.post.count({ where: { status: 'PUBLISHED', deletedAt: null } }),
-      this.prisma.report.count({ where: { status: 'OPEN' } }),
-    ]);
+    const [totalUsers, activeUsers, totalPosts, openReports] =
+      await Promise.all([
+        this.prisma.user.count(),
+        this.prisma.user.count({ where: { status: 'ACTIVE' } }),
+        this.prisma.post.count({
+          where: { status: 'PUBLISHED', deletedAt: null },
+        }),
+        this.prisma.report.count({ where: { status: 'OPEN' } }),
+      ]);
 
     return { totalUsers, activeUsers, totalPosts, openReports };
   }

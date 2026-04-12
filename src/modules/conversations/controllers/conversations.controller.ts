@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Patch, Body, Param, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Body,
+  Param,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { ConversationsService } from '../services/conversations.service';
 import { CreateConversationDto } from '../dto/create-conversation.dto';
@@ -15,7 +25,10 @@ export class ConversationsController {
 
   @Post()
   @ApiOperation({ summary: 'Create a direct or group conversation' })
-  createConversation(@CurrentUser() user: JwtPayload, @Body() dto: CreateConversationDto) {
+  createConversation(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: CreateConversationDto,
+  ) {
     return this.conversationsService.createConversation(user.sub, dto);
   }
 
@@ -28,7 +41,10 @@ export class ConversationsController {
   @Patch(':id/read')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Mark conversation as read' })
-  markAsRead(@CurrentUser() user: JwtPayload, @Param('id') conversationId: string) {
+  markAsRead(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') conversationId: string,
+  ) {
     return this.conversationsService.markAsRead(user.sub, conversationId);
   }
 }

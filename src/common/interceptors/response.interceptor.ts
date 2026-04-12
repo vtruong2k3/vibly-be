@@ -26,7 +26,12 @@ export class ResponseInterceptor implements NestInterceptor {
     return next.handle().pipe(
       map((data) => {
         // Allow services to pass { data, meta } explicitly for pagination
-        if (data && typeof data === 'object' && 'data' in data && 'meta' in data) {
+        if (
+          data &&
+          typeof data === 'object' &&
+          'data' in data &&
+          'meta' in data
+        ) {
           return { success: true, ...data };
         }
         return { success: true, data };

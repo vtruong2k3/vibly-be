@@ -1,5 +1,14 @@
 import {
-  Controller, Post, Delete, Get, Body, Param, Query, UseGuards, HttpCode, HttpStatus,
+  Controller,
+  Post,
+  Delete,
+  Get,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { FriendshipsService } from '../services/friendships.service';
@@ -36,7 +45,10 @@ export class FriendshipsController {
   // POST /friends/request
   @Post('friends/request')
   @ApiOperation({ summary: 'Send a friend request' })
-  sendRequest(@CurrentUser() user: JwtPayload, @Body() dto: SendFriendRequestDto) {
+  sendRequest(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: SendFriendRequestDto,
+  ) {
     return this.friendshipsService.sendRequest(user.sub, dto);
   }
 
@@ -44,7 +56,10 @@ export class FriendshipsController {
   @Post('friends/:requestId/accept')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Accept a friend request' })
-  acceptRequest(@CurrentUser() user: JwtPayload, @Param('requestId') requestId: string) {
+  acceptRequest(
+    @CurrentUser() user: JwtPayload,
+    @Param('requestId') requestId: string,
+  ) {
     return this.friendshipsService.acceptRequest(user.sub, requestId);
   }
 
@@ -52,7 +67,10 @@ export class FriendshipsController {
   @Post('friends/:requestId/reject')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reject a friend request' })
-  rejectRequest(@CurrentUser() user: JwtPayload, @Param('requestId') requestId: string) {
+  rejectRequest(
+    @CurrentUser() user: JwtPayload,
+    @Param('requestId') requestId: string,
+  ) {
     return this.friendshipsService.rejectRequest(user.sub, requestId);
   }
 
@@ -60,14 +78,20 @@ export class FriendshipsController {
   @Delete('friends/:userId')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Remove a friend' })
-  removeFriend(@CurrentUser() user: JwtPayload, @Param('userId') friendId: string) {
+  removeFriend(
+    @CurrentUser() user: JwtPayload,
+    @Param('userId') friendId: string,
+  ) {
     return this.friendshipsService.removeFriend(user.sub, friendId);
   }
 
   // POST /blocks/:userId
   @Post('blocks/:userId')
   @ApiOperation({ summary: 'Block a user' })
-  blockUser(@CurrentUser() user: JwtPayload, @Param('userId') blockedId: string) {
+  blockUser(
+    @CurrentUser() user: JwtPayload,
+    @Param('userId') blockedId: string,
+  ) {
     return this.friendshipsService.blockUser(user.sub, blockedId);
   }
 
@@ -75,7 +99,10 @@ export class FriendshipsController {
   @Delete('blocks/:userId')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Unblock a user' })
-  unblockUser(@CurrentUser() user: JwtPayload, @Param('userId') blockedId: string) {
+  unblockUser(
+    @CurrentUser() user: JwtPayload,
+    @Param('userId') blockedId: string,
+  ) {
     return this.friendshipsService.unblockUser(user.sub, blockedId);
   }
 }

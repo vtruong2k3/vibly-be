@@ -10,7 +10,10 @@ export class SearchUsersDto {
   @Transform(({ value }) => (value as string)?.trim())
   q?: string;
 
-  @ApiPropertyOptional({ example: '2024-01-01T00:00:00Z', description: 'Cursor for pagination' })
+  @ApiPropertyOptional({
+    example: '2024-01-01T00:00:00Z',
+    description: 'Cursor for pagination',
+  })
   @IsOptional()
   @IsString()
   cursor?: string;

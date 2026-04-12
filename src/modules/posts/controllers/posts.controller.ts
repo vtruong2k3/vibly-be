@@ -1,5 +1,15 @@
 import {
-  Controller, Post, Get, Patch, Delete, Body, Param, Query, UseGuards, HttpCode, HttpStatus,
+  Controller,
+  Post,
+  Get,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { PostsService } from '../services/posts.service';
@@ -47,7 +57,11 @@ export class PostsController {
   // PATCH /posts/:id
   @Patch('posts/:id')
   @ApiOperation({ summary: 'Update a post' })
-  updatePost(@CurrentUser() user: JwtPayload, @Param('id') postId: string, @Body() dto: UpdatePostDto) {
+  updatePost(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') postId: string,
+    @Body() dto: UpdatePostDto,
+  ) {
     return this.postsService.updatePost(user.sub, postId, dto);
   }
 
@@ -62,7 +76,11 @@ export class PostsController {
   // POST /posts/:id/reactions
   @Post('posts/:id/reactions')
   @ApiOperation({ summary: 'React to a post (like, love, haha...)' })
-  reactToPost(@CurrentUser() user: JwtPayload, @Param('id') postId: string, @Body() dto: ReactDto) {
+  reactToPost(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') postId: string,
+    @Body() dto: ReactDto,
+  ) {
     return this.postsService.reactToPost(user.sub, postId, dto);
   }
 
@@ -77,7 +95,11 @@ export class PostsController {
   // POST /posts/:id/comments
   @Post('posts/:id/comments')
   @ApiOperation({ summary: 'Comment on a post' })
-  addComment(@CurrentUser() user: JwtPayload, @Param('id') postId: string, @Body() dto: CreateCommentDto) {
+  addComment(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') postId: string,
+    @Body() dto: CreateCommentDto,
+  ) {
     return this.postsService.addComment(user.sub, postId, dto);
   }
 
@@ -95,7 +117,11 @@ export class PostsController {
   // PATCH /comments/:id
   @Patch('comments/:id')
   @ApiOperation({ summary: 'Edit a comment' })
-  updateComment(@CurrentUser() user: JwtPayload, @Param('id') commentId: string, @Body('content') content: string) {
+  updateComment(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') commentId: string,
+    @Body('content') content: string,
+  ) {
     return this.postsService.updateComment(user.sub, commentId, content);
   }
 
@@ -103,7 +129,10 @@ export class PostsController {
   @Delete('comments/:id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft-delete a comment' })
-  deleteComment(@CurrentUser() user: JwtPayload, @Param('id') commentId: string) {
+  deleteComment(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') commentId: string,
+  ) {
     return this.postsService.deleteComment(user.sub, commentId);
   }
 }

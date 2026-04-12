@@ -11,7 +11,10 @@ export class CreateReportDto {
   @IsString()
   targetId: string;
 
-  @ApiProperty({ example: 'SPAM', description: 'Short reason code (e.g. SPAM, HARASSMENT, NUDITY)' })
+  @ApiProperty({
+    example: 'SPAM',
+    description: 'Short reason code (e.g. SPAM, HARASSMENT, NUDITY)',
+  })
   @IsString()
   @MaxLength(120)
   reasonCode: string;

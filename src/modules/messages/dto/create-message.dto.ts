@@ -1,4 +1,11 @@
-import { IsString, IsOptional, MaxLength, IsArray, IsEnum, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  MaxLength,
+  IsArray,
+  IsEnum,
+  IsUUID,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { MessageType } from '@prisma/client';
 

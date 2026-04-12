@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../../database/prisma/prisma.service';
 import { AccessToken } from 'livekit-server-sdk';
@@ -22,10 +28,12 @@ export class CallsService {
     // Validate participants exist
     const participants = await this.prisma.user.findMany({
       where: { id: { in: participantIds }, deletedAt: null, status: 'ACTIVE' },
-      select: { id: true, username: true }
+      select: { id: true, username: true },
     });
     if (participants.length !== participantIds.length) {
-      throw new BadRequestException('One or more participants not found or invalid');
+      throw new BadRequestException(
+        'One or more participants not found or invalid',
+      );
     }
 
     const roomName = `call-${randomUUID()}`;
@@ -43,9 +51,16 @@ export class CallsService {
           participants: {
             create: [
               // Initiator joins immediately
-              { userId: initiatorId, joinStatus: CallJoinStatus.JOINED, joinedAt: new Date() },
+              {
+                userId: initiatorId,
+                joinStatus: CallJoinStatus.JOINED,
+                joinedAt: new Date(),
+              },
               // Invitees start as INVITED
-              ...participantIds.map((userId) => ({ userId, joinStatus: CallJoinStatus.INVITED })),
+              ...participantIds.map((userId) => ({
+                userId,
+                joinStatus: CallJoinStatus.INVITED,
+              })),
             ],
           },
         },
@@ -66,9 +81,15 @@ export class CallsService {
     });
 
     // Generate initiator's LiveKit token
-    const token = await this.generateLivekitToken(roomName, initiatorId, 'host');
+    const token = await this.generateLivekitToken(
+      roomName,
+      initiatorId,
+      'host',
+    );
 
-    this.logger.log(`Call ${callSession.id} started by ${initiatorId} in room ${roomName}`);
+    this.logger.log(
+      `Call ${callSession.id} started by ${initiatorId} in room ${roomName}`,
+    );
 
     return {
       callSessionId: callSession.id,
@@ -85,18 +106,21 @@ export class CallsService {
       include: { callSession: true },
     });
 
-    if (!participant) throw new ForbiddenException('You are not invited to this call');
+    if (!participant)
+      throw new ForbiddenException('You are not invited to this call');
 
-    if (participant.callSession.status === CallStatus.ENDED || 
-        participant.callSession.status === CallStatus.REJECTED ||
-        participant.callSession.status === CallStatus.CANCELED) {
+    if (
+      participant.callSession.status === CallStatus.ENDED ||
+      participant.callSession.status === CallStatus.REJECTED ||
+      participant.callSession.status === CallStatus.CANCELED
+    ) {
       throw new BadRequestException('Call is no longer active');
     }
 
     const token = await this.generateLivekitToken(
       participant.callSession.roomName,
       userId,
-      'participant'
+      'participant',
     );
 
     return {
@@ -108,7 +132,10 @@ export class CallsService {
 
   // POST /calls/:id/accept
   async acceptCall(userId: string, callSessionId: string) {
-    const participant = await this.findParticipantOrThrow(userId, callSessionId);
+    const participant = await this.findParticipantOrThrow(
+      userId,
+      callSessionId,
+    );
 
     await this.prisma.$transaction(async (tx) => {
       await tx.callParticipant.update({
@@ -123,7 +150,11 @@ export class CallsService {
         });
       }
       await tx.callEvent.create({
-        data: { callSessionId, actorUserId: userId, eventType: 'call_accepted' },
+        data: {
+          callSessionId,
+          actorUserId: userId,
+          eventType: 'call_accepted',
+        },
       });
     });
 
@@ -131,7 +162,7 @@ export class CallsService {
     const token = await this.generateLivekitToken(
       participant.callSession.roomName,
       userId,
-      'participant'
+      'participant',
     );
 
     return {
@@ -143,7 +174,10 @@ export class CallsService {
 
   // POST /calls/:id/reject
   async rejectCall(userId: string, callSessionId: string) {
-    const participant = await this.findParticipantOrThrow(userId, callSessionId);
+    const participant = await this.findParticipantOrThrow(
+      userId,
+      callSessionId,
+    );
 
     await this.prisma.$transaction(async (tx) => {
       await tx.callParticipant.update({
@@ -157,11 +191,19 @@ export class CallsService {
       if (otherParticipants === 0) {
         await tx.callSession.update({
           where: { id: callSessionId },
-          data: { status: CallStatus.REJECTED, endedAt: new Date(), endedReason: 'rejected' },
+          data: {
+            status: CallStatus.REJECTED,
+            endedAt: new Date(),
+            endedReason: 'rejected',
+          },
         });
       }
       await tx.callEvent.create({
-        data: { callSessionId, actorUserId: userId, eventType: 'call_rejected' },
+        data: {
+          callSessionId,
+          actorUserId: userId,
+          eventType: 'call_rejected',
+        },
       });
     });
 
@@ -179,7 +221,8 @@ export class CallsService {
 
     // Only initiator or any participant in an active call can end it
     const isParticipant = session.participants.some((p) => p.userId === userId);
-    if (!isParticipant) throw new ForbiddenException('Not a participant of this call');
+    if (!isParticipant)
+      throw new ForbiddenException('Not a participant of this call');
 
     const now = new Date();
     const durationSeconds = session.startedAt
@@ -193,7 +236,10 @@ export class CallsService {
           status: CallStatus.ENDED,
           endedAt: now,
           durationSeconds,
-          endedReason: userId === session.initiatorUserId ? 'initiator_ended' : 'participant_ended',
+          endedReason:
+            userId === session.initiatorUserId
+              ? 'initiator_ended'
+              : 'participant_ended',
         },
       });
       // Mark remaining active participants as LEFT
@@ -221,7 +267,12 @@ export class CallsService {
       include: {
         participants: {
           include: {
-            user: { select: { username: true, profile: { select: { displayName: true, avatarMediaId: true } } } },
+            user: {
+              select: {
+                username: true,
+                profile: { select: { displayName: true, avatarMediaId: true } },
+              },
+            },
           },
         },
         events: { orderBy: { createdAt: 'asc' } },
@@ -230,7 +281,8 @@ export class CallsService {
     if (!session) throw new NotFoundException('Call session not found');
 
     const isParticipant = session.participants.some((p) => p.userId === userId);
-    if (!isParticipant) throw new ForbiddenException('Not a participant of this call');
+    if (!isParticipant)
+      throw new ForbiddenException('Not a participant of this call');
 
     return session;
   }
@@ -241,7 +293,8 @@ export class CallsService {
       where: { callSessionId, userId },
       include: { callSession: true },
     });
-    if (!participant) throw new ForbiddenException('You are not a participant in this call');
+    if (!participant)
+      throw new ForbiddenException('You are not a participant in this call');
     if (
       participant.callSession.status === CallStatus.ENDED ||
       participant.callSession.status === CallStatus.CANCELED
@@ -251,13 +304,19 @@ export class CallsService {
     return participant;
   }
 
-  private async generateLivekitToken(roomName: string, userId: string, role: 'host' | 'participant'): Promise<string> {
+  private async generateLivekitToken(
+    roomName: string,
+    userId: string,
+    role: 'host' | 'participant',
+  ): Promise<string> {
     const apiKey = this.configService.get<string>('livekit.apiKey', '');
     const apiSecret = this.configService.get<string>('livekit.apiSecret', '');
     const ttl = this.configService.get<number>('livekit.tokenTtl', 3600);
 
     if (!apiKey || !apiSecret) {
-      this.logger.warn('LiveKit credentials not set — returning dummy token for dev');
+      this.logger.warn(
+        'LiveKit credentials not set — returning dummy token for dev',
+      );
       return 'dev-livekit-token';
     }
 

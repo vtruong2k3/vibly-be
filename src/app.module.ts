@@ -40,7 +40,14 @@ import { AdminModule } from './modules/admin/admin.module';
     // Config: load all namespaced configs, validate env at startup
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, authConfig, databaseConfig, redisConfig, s3Config, livekitConfig],
+      load: [
+        appConfig,
+        authConfig,
+        databaseConfig,
+        redisConfig,
+        s3Config,
+        livekitConfig,
+      ],
       cache: true,
     }),
 
@@ -60,7 +67,7 @@ import { AdminModule } from './modules/admin/admin.module';
     AuthModule,
 
     // ── Phase 2 ────────
-    ProfilesModule,   // Must be before UsersModule (UsersModule imports ProfilesModule)
+    ProfilesModule, // Must be before UsersModule (UsersModule imports ProfilesModule)
     UsersModule,
     FriendshipsModule,
     PostsModule,
@@ -80,9 +87,6 @@ import { AdminModule } from './modules/admin/admin.module';
     AdminModule,
   ],
   controllers: [AppController],
-  providers: [
-    AppService,
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
-  ],
+  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

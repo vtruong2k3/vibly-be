@@ -18,7 +18,9 @@ export class ModerationController {
 
   // POST /moderation/report — Available to all authenticated users (Plan: §Settings & Moderation)
   @Post('report')
-  @ApiOperation({ summary: 'File a report on a user, post, comment, or message' })
+  @ApiOperation({
+    summary: 'File a report on a user, post, comment, or message',
+  })
   createReport(@CurrentUser() user: JwtPayload, @Body() dto: CreateReportDto) {
     return this.moderationService.createReport(user.sub, dto);
   }
@@ -41,7 +43,10 @@ export class ModerationController {
   @UseGuards(RolesGuard)
   @Roles('MODERATOR', 'ADMIN')
   @ApiOperation({ summary: '[Moderator] Apply a moderation action' })
-  takeAction(@CurrentUser() user: JwtPayload, @Body() dto: ModerationActionDto) {
+  takeAction(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: ModerationActionDto,
+  ) {
     return this.moderationService.takeAction(user.sub, dto);
   }
 }

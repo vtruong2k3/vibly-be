@@ -24,28 +24,53 @@ export class SettingsService {
     return this.prisma.userPrivacySettings.update({
       where: { userId },
       data: {
-        ...(dto.profileVisibility && { profileVisibility: dto.profileVisibility }),
-        ...(dto.friendListVisibility && { friendListVisibility: dto.friendListVisibility }),
-        ...(dto.allowFriendRequestsFrom && { allowFriendRequestsFrom: dto.allowFriendRequestsFrom }),
-        ...(dto.allowMessagesFrom && { allowMessagesFrom: dto.allowMessagesFrom }),
+        ...(dto.profileVisibility && {
+          profileVisibility: dto.profileVisibility,
+        }),
+        ...(dto.friendListVisibility && {
+          friendListVisibility: dto.friendListVisibility,
+        }),
+        ...(dto.allowFriendRequestsFrom && {
+          allowFriendRequestsFrom: dto.allowFriendRequestsFrom,
+        }),
+        ...(dto.allowMessagesFrom && {
+          allowMessagesFrom: dto.allowMessagesFrom,
+        }),
         ...(dto.allowCallsFrom && { allowCallsFrom: dto.allowCallsFrom }),
-        ...(dto.showOnlineStatus !== undefined && { showOnlineStatus: dto.showOnlineStatus }),
-        ...(dto.showLastSeen !== undefined && { showLastSeen: dto.showLastSeen }),
+        ...(dto.showOnlineStatus !== undefined && {
+          showOnlineStatus: dto.showOnlineStatus,
+        }),
+        ...(dto.showLastSeen !== undefined && {
+          showLastSeen: dto.showLastSeen,
+        }),
       },
     });
   }
 
-  async updateNotifications(userId: string, dto: UpdateNotificationSettingsDto) {
+  async updateNotifications(
+    userId: string,
+    dto: UpdateNotificationSettingsDto,
+  ) {
     return this.prisma.userNotificationSettings.update({
       where: { userId },
       data: {
         ...(dto.likeEnabled !== undefined && { likeEnabled: dto.likeEnabled }),
-        ...(dto.commentEnabled !== undefined && { commentEnabled: dto.commentEnabled }),
-        ...(dto.friendRequestEnabled !== undefined && { friendRequestEnabled: dto.friendRequestEnabled }),
-        ...(dto.messageEnabled !== undefined && { messageEnabled: dto.messageEnabled }),
+        ...(dto.commentEnabled !== undefined && {
+          commentEnabled: dto.commentEnabled,
+        }),
+        ...(dto.friendRequestEnabled !== undefined && {
+          friendRequestEnabled: dto.friendRequestEnabled,
+        }),
+        ...(dto.messageEnabled !== undefined && {
+          messageEnabled: dto.messageEnabled,
+        }),
         ...(dto.callEnabled !== undefined && { callEnabled: dto.callEnabled }),
-        ...(dto.emailNotificationsEnabled !== undefined && { emailNotificationsEnabled: dto.emailNotificationsEnabled }),
-        ...(dto.pushNotificationsEnabled !== undefined && { pushNotificationsEnabled: dto.pushNotificationsEnabled }),
+        ...(dto.emailNotificationsEnabled !== undefined && {
+          emailNotificationsEnabled: dto.emailNotificationsEnabled,
+        }),
+        ...(dto.pushNotificationsEnabled !== undefined && {
+          pushNotificationsEnabled: dto.pushNotificationsEnabled,
+        }),
       },
     });
   }

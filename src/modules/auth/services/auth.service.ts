@@ -65,7 +65,9 @@ export class AuthService {
 
       // Bootstrap default privacy settings (per plan)
       await tx.userPrivacySettings.create({ data: { userId: newUser.id } });
-      await tx.userNotificationSettings.create({ data: { userId: newUser.id } });
+      await tx.userNotificationSettings.create({
+        data: { userId: newUser.id },
+      });
       await tx.userSecuritySettings.create({ data: { userId: newUser.id } });
       await tx.userPresence.create({ data: { userId: newUser.id } });
 
@@ -76,7 +78,10 @@ export class AuthService {
     await this.createEmailVerification(user.id);
 
     this.logger.log(`New user registered: ${user.id} <${user.email}>`);
-    return { message: 'Registration successful. Please check your email to verify your account.' };
+    return {
+      message:
+        'Registration successful. Please check your email to verify your account.',
+    };
   }
 
   // === LOGIN ===
@@ -100,7 +105,9 @@ export class AuthService {
     }
 
     if (!user.emailVerifiedAt) {
-      throw new UnauthorizedException('Please verify your email address before logging in');
+      throw new UnauthorizedException(
+        'Please verify your email address before logging in',
+      );
     }
 
     // Create DB session — enables per-device management & remote revocation
@@ -164,10 +171,24 @@ export class AuthService {
         revokedAt: null,
         expiresAt: { gt: now },
       },
-      include: { user: { select: { id: true, email: true, role: true, status: true, deletedAt: true } } },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            role: true,
+            status: true,
+            deletedAt: true,
+          },
+        },
+      },
     });
 
-    if (!session || session.user.status === UserStatus.SUSPENDED || session.user.deletedAt) {
+    if (
+      !session ||
+      session.user.status === UserStatus.SUSPENDED ||
+      session.user.deletedAt
+    ) {
       // Clear poisoned cookie
       this.tokenService.clearRefreshCookie(res);
       throw new UnauthorizedException('Session is invalid or expired');
@@ -246,7 +267,9 @@ export class AuthService {
     });
 
     if (!record) {
-      throw new BadRequestException('Email verification token is invalid or expired');
+      throw new BadRequestException(
+        'Email verification token is invalid or expired',
+      );
     }
 
     await this.prisma.$transaction(async (tx) => {
@@ -301,7 +324,10 @@ export class AuthService {
       this.logger.log(`Password reset requested for user: ${user.id}`);
     }
 
-    return { message: 'If an account with that email exists, a reset link has been sent.' };
+    return {
+      message:
+        'If an account with that email exists, a reset link has been sent.',
+    };
   }
 
   async resetPassword(token: string, newPassword: string) {
@@ -313,7 +339,9 @@ export class AuthService {
     });
 
     if (!record) {
-      throw new BadRequestException('Password reset token is invalid or expired');
+      throw new BadRequestException(
+        'Password reset token is invalid or expired',
+      );
     }
 
     const passwordHash = await this.passwordService.hash(newPassword);
@@ -336,7 +364,10 @@ export class AuthService {
       });
     });
 
-    return { message: 'Password reset successfully. Please log in with your new password.' };
+    return {
+      message:
+        'Password reset successfully. Please log in with your new password.',
+    };
   }
 
   // === PRIVATE HELPERS ===

@@ -1,7 +1,4 @@
-import {
-  NestFactory,
-  Reflector,
-} from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import {
   ClassSerializerInterceptor,
@@ -39,7 +36,9 @@ async function bootstrap() {
 
   // CORS
   app.enableCors({
-    origin: process.env.ALLOWED_ORIGINS?.split(',') ?? ['http://localhost:3001'],
+    origin: process.env.ALLOWED_ORIGINS?.split(',') ?? [
+      'http://localhost:3001',
+    ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
@@ -73,7 +72,10 @@ async function bootstrap() {
       .setTitle('Vibly Social API')
       .setDescription('Vibly Social Platform REST API')
       .setVersion('1.0')
-      .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'access-token')
+      .addBearerAuth(
+        { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+        'access-token',
+      )
       .addCookieAuth('__Host-refresh')
       .build();
 

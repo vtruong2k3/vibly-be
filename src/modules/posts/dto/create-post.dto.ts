@@ -1,4 +1,11 @@
-import { IsString, IsOptional, IsEnum, MaxLength, IsArray, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  MaxLength,
+  IsArray,
+  IsUUID,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { VisibilityLevel } from '@prisma/client';
 
@@ -9,7 +16,10 @@ export class CreatePostDto {
   @MaxLength(5000)
   content?: string;
 
-  @ApiPropertyOptional({ enum: VisibilityLevel, default: VisibilityLevel.FRIENDS })
+  @ApiPropertyOptional({
+    enum: VisibilityLevel,
+    default: VisibilityLevel.FRIENDS,
+  })
   @IsOptional()
   @IsEnum(VisibilityLevel)
   visibility?: VisibilityLevel = VisibilityLevel.FRIENDS;

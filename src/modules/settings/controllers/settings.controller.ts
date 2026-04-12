@@ -1,4 +1,12 @@
-import { Controller, Get, Patch, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Patch,
+  Body,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { SettingsService } from '../services/settings.service';
 import { UpdatePrivacySettingsDto } from '../dto/update-privacy-settings.dto';
@@ -16,7 +24,9 @@ export class SettingsController {
 
   // GET /settings
   @Get()
-  @ApiOperation({ summary: 'Get all user settings (privacy, notifications, security)' })
+  @ApiOperation({
+    summary: 'Get all user settings (privacy, notifications, security)',
+  })
   getAllSettings(@CurrentUser() user: JwtPayload) {
     return this.settingsService.getAllSettings(user.sub);
   }
@@ -25,7 +35,10 @@ export class SettingsController {
   @Patch('privacy')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update privacy settings' })
-  updatePrivacy(@CurrentUser() user: JwtPayload, @Body() dto: UpdatePrivacySettingsDto) {
+  updatePrivacy(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: UpdatePrivacySettingsDto,
+  ) {
     return this.settingsService.updatePrivacy(user.sub, dto);
   }
 
@@ -33,7 +46,10 @@ export class SettingsController {
   @Patch('notifications')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update notification preferences' })
-  updateNotifications(@CurrentUser() user: JwtPayload, @Body() dto: UpdateNotificationSettingsDto) {
+  updateNotifications(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: UpdateNotificationSettingsDto,
+  ) {
     return this.settingsService.updateNotifications(user.sub, dto);
   }
 }
