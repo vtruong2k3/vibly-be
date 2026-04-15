@@ -38,32 +38,33 @@ export class TokenService {
     return createHash('sha256').update(token).digest('hex');
   }
 
-  // Set __Host-refresh cookie (OWASP: HttpOnly, Secure, SameSite=Lax, no Domain)
+  // Set refresh cookie
+  // __Host- prefix requires Secure (HTTPS) — use plain name in dev to avoid
+  // browsers silently rejecting the cookie on HTTP (localhost)
   setRefreshCookie(res: Response, token: string, expiresAt: Date): void {
-    const cookieName = this.config.get<string>(
-      'auth.refreshCookieName',
-      '__Host-refresh',
-    );
+    const isProduction = process.env.NODE_ENV === 'production';
+    const cookieName = isProduction
+      ? this.config.get<string>('auth.refreshCookieName', '__Host-refresh')
+      : 'refresh';
 
     res.cookie(cookieName, token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isProduction,
       sameSite: 'lax',
       path: '/',
       expires: expiresAt,
-      // OWASP: No domain set with __Host- prefix to prevent subdomain leaks
     });
   }
 
   // Clear refresh token cookie on logout
   clearRefreshCookie(res: Response): void {
-    const cookieName = this.config.get<string>(
-      'auth.refreshCookieName',
-      '__Host-refresh',
-    );
+    const isProduction = process.env.NODE_ENV === 'production';
+    const cookieName = isProduction
+      ? this.config.get<string>('auth.refreshCookieName', '__Host-refresh')
+      : 'refresh';
     res.clearCookie(cookieName, {
       httpOnly: true,
-      secure: true,
+      secure: isProduction,
       sameSite: 'lax',
       path: '/',
     });

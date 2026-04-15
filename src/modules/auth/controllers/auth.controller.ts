@@ -21,6 +21,7 @@ import { LoginDto } from '../dto/login.dto';
 import { ForgotPasswordDto } from '../dto/forgot-password.dto';
 import { ResetPasswordDto } from '../dto/reset-password.dto';
 import { VerifyEmailDto } from '../dto/verify-email.dto';
+import { ResendVerificationDto } from '../dto/resend-verification.dto';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { Public } from '../../../common/decorators/public.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
@@ -65,8 +66,11 @@ export class AuthController {
     @Res({ passthrough: true }) res: Record<string, unknown>,
   ) {
     const cookieMap = req['cookies'] as Record<string, string> | undefined;
-    const cookieRefreshToken =
-      cookieMap?.['__Host-refresh'] ?? cookieMap?.['refresh'];
+    // In dev (HTTP) the cookie is named "refresh"; in prod (HTTPS) it is "__Host-refresh"
+    const isProduction = process.env.NODE_ENV === 'production';
+    const cookieRefreshToken = isProduction
+      ? cookieMap?.['__Host-refresh']
+      : cookieMap?.['refresh'] ?? cookieMap?.['__Host-refresh'];
     return this.authService.refresh(
       cookieRefreshToken ?? '',
       req as never,
@@ -104,13 +108,13 @@ export class AuthController {
     return this.authService.verifyEmail(dto.token);
   }
 
+  @Public()
   @Post('resend-verify-email')
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   @ApiOperation({ summary: 'Resend email verification' })
-  @ApiBearerAuth('access-token')
-  resendVerifyEmail(@CurrentUser('sub') userId: string) {
-    return this.authService.resendVerifyEmail(userId);
+  resendVerifyEmail(@Body() dto: ResendVerificationDto) {
+    return this.authService.resendVerifyEmail(dto.email);
   }
 
   @Public()

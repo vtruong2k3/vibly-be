@@ -42,6 +42,16 @@ export class FriendshipsController {
     return this.friendshipsService.listIncomingRequests(user.sub);
   }
 
+  // GET /friends/status/:targetId
+  @Get('friends/status/:targetId')
+  @ApiOperation({ summary: 'Get friendship status with a target user' })
+  getStatus(
+    @CurrentUser() user: JwtPayload,
+    @Param('targetId') targetId: string,
+  ) {
+    return this.friendshipsService.getFriendshipStatus(user.sub, targetId);
+  }
+
   // POST /friends/request
   @Post('friends/request')
   @ApiOperation({ summary: 'Send a friend request' })
@@ -72,6 +82,17 @@ export class FriendshipsController {
     @Param('requestId') requestId: string,
   ) {
     return this.friendshipsService.rejectRequest(user.sub, requestId);
+  }
+
+  // DELETE /friends/requests/:requestId
+  @Delete('friends/requests/:requestId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Cancel a sent friend request' })
+  cancelRequest(
+    @CurrentUser() user: JwtPayload,
+    @Param('requestId') requestId: string,
+  ) {
+    return this.friendshipsService.cancelRequest(user.sub, requestId);
   }
 
   // DELETE /friends/:userId

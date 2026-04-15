@@ -5,7 +5,7 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { UseGuards } from '@nestjs/common';
+import { Inject, forwardRef } from '@nestjs/common';
 import { WsJwtGuard } from '../../../common/guards/ws-jwt.guard';
 import { PresenceService } from '../services/presence.service';
 import { FriendshipsService } from '../../friendships/services/friendships.service';
@@ -24,6 +24,7 @@ export class PresenceGateway
 
   constructor(
     private readonly presenceService: PresenceService,
+    @Inject(forwardRef(() => FriendshipsService))
     private readonly friendshipsService: FriendshipsService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,

@@ -79,10 +79,16 @@ export class UsersService {
     });
   }
 
-  // GET /users/:id — public user profile (respects privacy settings)
+  // GET /users/:id — public user profile (respects privacy settings, supports ID or Username)
   async getUserById(requestingUserId: string, targetUserId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: targetUserId, status: UserStatus.ACTIVE, deletedAt: null },
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetUserId);
+
+    const user = await this.prisma.user.findFirst({
+      where: {
+        ...(isUuid ? { id: targetUserId } : { username: targetUserId.toLowerCase() }),
+        status: UserStatus.ACTIVE,
+        deletedAt: null,
+      },
       select: {
         id: true,
         username: true,
@@ -111,11 +117,12 @@ export class UsersService {
     if (!user) throw new NotFoundException('User not found');
 
     // Check if requester is blocked by or has blocked the target
+    // Use the resolved user.id (UUID) — targetUserId may be a username string
     const block = await this.prisma.userBlock.findFirst({
       where: {
         OR: [
-          { blockerId: requestingUserId, blockedId: targetUserId },
-          { blockerId: targetUserId, blockedId: requestingUserId },
+          { blockerId: requestingUserId, blockedId: user.id },
+          { blockerId: user.id, blockedId: requestingUserId },
         ],
       },
     });
@@ -128,7 +135,11 @@ export class UsersService {
   // GET /users/search?q= — search users by username/displayName
   async searchUsers(requestingUserId: string, dto: SearchUsersDto) {
     const limit = Math.min(dto.limit ?? 20, 50);
-    const query = dto.q?.trim();
+    // Strip leading '@' if user types it explicitly for a username search
+    let query = dto.q?.trim();
+    if (query?.startsWith('@')) {
+      query = query.substring(1);
+    }
 
     if (!query || query.length < 2) return { data: [], meta: { total: 0 } };
 

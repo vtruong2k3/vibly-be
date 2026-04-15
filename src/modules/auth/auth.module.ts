@@ -6,11 +6,13 @@ import { AuthService } from './services/auth.service';
 import { PasswordService } from './services/password.service';
 import { TokenService } from './services/token.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({}), // Secret configured per-call in TokenService (allows multi-secret)
+    MailModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, PasswordService, TokenService, JwtStrategy],

@@ -9,12 +9,14 @@ import {
 import { PrismaService } from '../../../database/prisma/prisma.service';
 import { PasswordService } from './password.service';
 import { TokenService } from './token.service';
+
 import { RegisterDto } from '../dto/register.dto';
 import { LoginDto } from '../dto/login.dto';
 import { UserStatus } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { addDays, addHours } from 'date-fns';
 import { Request, Response } from 'express';
+import { MailService } from 'src/modules/mail/mail.service';
 
 @Injectable()
 export class AuthService {
@@ -24,6 +26,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly passwordService: PasswordService,
     private readonly tokenService: TokenService,
+    private readonly mailService: MailService,
   ) {}
 
   // === REGISTER ===
@@ -75,7 +78,7 @@ export class AuthService {
     });
 
     // Generate and persist email verification token
-    await this.createEmailVerification(user.id);
+    await this.createEmailVerification(user.id, user.email);
 
     this.logger.log(`New user registered: ${user.id} <${user.email}>`);
     return {
@@ -104,7 +107,8 @@ export class AuthService {
       throw new UnauthorizedException('Your account has been suspended');
     }
 
-    if (!user.emailVerifiedAt) {
+    const isDev = process.env.NODE_ENV !== 'production';
+    if (!isDev && !user.emailVerifiedAt) {
       throw new UnauthorizedException(
         'Please verify your email address before logging in',
       );
@@ -287,18 +291,23 @@ export class AuthService {
     return { message: 'Email verified successfully. You can now log in.' };
   }
 
-  async resendVerifyEmail(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { emailVerifiedAt: true },
+  async resendVerifyEmail(email: string) {
+    // OWASP: Do not confirm if email exists or not to prevent enumeration
+    const user = await this.prisma.user.findFirst({
+      where: { email: email.toLowerCase(), deletedAt: null },
+      select: { id: true, emailVerifiedAt: true, email: true },
     });
 
-    if (user?.emailVerifiedAt) {
-      throw new BadRequestException('Email is already verified');
+    if (!user) {
+      return { message: 'If that email exists, a verification link has been sent.' };
     }
 
-    await this.createEmailVerification(userId);
-    return { message: 'Verification email sent. Please check your inbox.' };
+    if (user.emailVerifiedAt) {
+      return { message: 'If that email exists, a verification link has been sent.' };
+    }
+
+    await this.createEmailVerification(user.id, user.email);
+    return { message: 'If that email exists, a verification link has been sent.' };
   }
 
   // === PASSWORD RESET ===
@@ -371,9 +380,15 @@ export class AuthService {
   }
 
   // === PRIVATE HELPERS ===
-  private async createEmailVerification(userId: string) {
+  private async createEmailVerification(userId: string, email: string) {
     const rawToken = randomBytes(32).toString('hex');
     const tokenHash = this.tokenService.hashToken(rawToken);
+
+    // Invalidate old tokens for this user
+    await this.prisma.emailVerification.updateMany({
+      where: { userId, usedAt: null },
+      data: { usedAt: new Date() },
+    });
 
     await this.prisma.emailVerification.create({
       data: {
@@ -383,7 +398,9 @@ export class AuthService {
       },
     });
 
-    // TODO: Send email with rawToken (integrate mail service in Phase 2)
+    // Fire and forget email notification
+    this.mailService.sendVerificationEmail(email, rawToken);
+
     this.logger.log(`Email verification created for user: ${userId}`);
   }
 

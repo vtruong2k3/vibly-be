@@ -4,14 +4,21 @@ import {
   ConflictException,
   BadRequestException,
   ForbiddenException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma/prisma.service';
 import { FriendRequestStatus } from '@prisma/client';
 import { SendFriendRequestDto } from '../dto/send-friend-request.dto';
+import { PresenceGateway } from '../../presence/gateways/presence.gateway';
 
 @Injectable()
 export class FriendshipsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => PresenceGateway))
+    private readonly presenceGateway: PresenceGateway,
+  ) {}
 
   // POST /friends/request
   async sendRequest(requesterId: string, dto: SendFriendRequestDto) {
@@ -65,8 +72,28 @@ export class FriendshipsService {
         addresseeId: true,
         status: true,
         createdAt: true,
+        requester: {
+          select: {
+            username: true,
+            profile: { select: { displayName: true, avatarMediaId: true } },
+          },
+        },
       },
     });
+
+    // 🔔 Push real-time notification to the addressee
+    this.presenceGateway.server
+      ?.to(`user:${dto.addresseeId}`)
+      .emit('notification', {
+        type: 'friend_request_received',
+        requestId: request.id,
+        sender: {
+          id: requesterId,
+          username: request.requester.username,
+          displayName: request.requester.profile?.displayName,
+          avatarMediaId: request.requester.profile?.avatarMediaId,
+        },
+      });
 
     return request;
   }
@@ -82,7 +109,7 @@ export class FriendshipsService {
     });
     if (!request) throw new NotFoundException('Friend request not found');
 
-    // Transaction: update request + create bi-directional friendship rows (plan: 2 rows for fast query)
+    // Transaction: update request + create bi-directional friendship rows
     await this.prisma.$transaction(async (tx) => {
       await tx.friendRequest.update({
         where: { id: requestId },
@@ -98,6 +125,16 @@ export class FriendshipsService {
         skipDuplicates: true,
       });
     });
+
+    // 🔔 Push real-time notification to the original requester
+    this.presenceGateway.server
+      ?.to(`user:${request.requesterId}`)
+      .emit('notification', {
+        type: 'friend_request_accepted',
+        acceptedBy: {
+          id: userId,
+        },
+      });
 
     return { message: 'Friend request accepted' };
   }
@@ -119,6 +156,24 @@ export class FriendshipsService {
     });
 
     return { message: 'Friend request rejected' };
+  }
+
+  // DELETE /friends/requests/:requestId  (Cancel an outgoing request)
+  async cancelRequest(userId: string, requestId: string) {
+    const request = await this.prisma.friendRequest.findFirst({
+      where: {
+        id: requestId,
+        requesterId: userId,
+        status: FriendRequestStatus.PENDING,
+      },
+    });
+    if (!request) throw new NotFoundException('Pending friend request not found');
+
+    await this.prisma.friendRequest.delete({
+      where: { id: requestId },
+    });
+
+    return { message: 'Friend request canceled' };
   }
 
   // DELETE /friends/:userId
@@ -254,5 +309,33 @@ export class FriendshipsService {
       },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  // GET /friends/status/:targetId
+  async getFriendshipStatus(userId: string, targetId: string) {
+    if (userId === targetId) return { status: 'self', requestId: null };
+
+    const friendship = await this.prisma.friendship.findUnique({
+      where: { userId_friendId: { userId, friendId: targetId } },
+    });
+    if (friendship) return { status: 'friends', requestId: null };
+
+    const request = await this.prisma.friendRequest.findFirst({
+      where: {
+        status: FriendRequestStatus.PENDING,
+        OR: [
+          { requesterId: userId, addresseeId: targetId },
+          { requesterId: targetId, addresseeId: userId },
+        ],
+      },
+    });
+
+    if (!request) return { status: 'none', requestId: null };
+
+    if (request.requesterId === userId) {
+      return { status: 'pending_outgoing', requestId: request.id };
+    } else {
+      return { status: 'pending_incoming', requestId: request.id };
+    }
   }
 }

@@ -14,6 +14,7 @@ import { AppService } from './app.service';
 
 // ── Phase 1 ───────────────────────────────────────
 import { AuthModule } from './modules/auth/auth.module';
+import { MailModule } from './modules/mail/mail.module';
 
 // ── Phase 2 ───────────────────────────────────────
 import { UsersModule } from './modules/users/users.module';
@@ -64,6 +65,7 @@ import { AdminModule } from './modules/admin/admin.module';
     PrismaModule,
 
     // ── Phase 1 ────────
+    MailModule,
     AuthModule,
 
     // ── Phase 2 ────────

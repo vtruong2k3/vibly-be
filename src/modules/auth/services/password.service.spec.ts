@@ -49,10 +49,10 @@ describe('PasswordService', () => {
     it('should reject an incorrect password', async () => {
       const password = 'correctPassword123!';
       const wrongPassword = 'wrongPassword123!';
-      
+
       const hash = await service.hash(password);
       const isValid = await service.verify(hash, wrongPassword);
-      
+
       expect(isValid).toBe(false);
     });
   });

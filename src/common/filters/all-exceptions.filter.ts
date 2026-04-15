@@ -45,9 +45,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
       }
     }
 
-    this.logger.warn(
-      `${request.method} ${request.url} → ${statusCode} [${code}]: ${message}`,
-    );
+    const isExpectedSilentRefresh401 = statusCode === 401 && request.url.includes('/auth/refresh');
+
+    if (!isExpectedSilentRefresh401) {
+      this.logger.warn(
+        `${request.method} ${request.url} → ${statusCode} [${code}]: ${message}`,
+      );
+    }
 
     // Never debug info in prod
     if (statusCode >= 500 && process.env.NODE_ENV !== 'production') {

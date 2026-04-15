@@ -28,10 +28,10 @@ describe('AuthController (e2e)', () => {
         email: testEmail,
         username: `tester_${Date.now()}`,
         password: 'Password123!',
-        displayName: 'Test User'
+        displayName: 'Test User',
       })
       .expect(201); // Created
-    
+
     expect(response.body).toHaveProperty('message');
   });
 
@@ -42,8 +42,8 @@ describe('AuthController (e2e)', () => {
         email: testEmail,
         password: 'Password123!',
       });
-      // Will expect 401 because email is not verified yet, which is correct behavior!
-    
+    // Will expect 401 because email is not verified yet, which is correct behavior!
+
     expect(response.status).toBe(401);
     expect(response.body.message).toContain('Please verify your email address');
   });

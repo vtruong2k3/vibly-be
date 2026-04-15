@@ -102,9 +102,6 @@ export class FeedService {
       },
     };
 
-    // Cache the result for 30 seconds
-    await this.cacheManager.set(cacheKey, result, 30000);
-
     return result;
   }
 
