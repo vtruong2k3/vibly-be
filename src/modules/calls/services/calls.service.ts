@@ -263,6 +263,14 @@ export class CallsService {
 
     if (!session) throw new NotFoundException('Call session not found');
 
+    // Idempotent guard — if already ended, return success silently.
+    // Prevents errors from duplicate endCall calls (race condition between
+    // socket event handler and LiveKit onDisconnected callback on client side).
+    const terminalStatuses = [CallStatus.ENDED, CallStatus.REJECTED, CallStatus.CANCELED];
+    if (terminalStatuses.includes(session.status)) {
+      return { message: 'Call ended', durationSeconds: session.durationSeconds ?? 0 };
+    }
+
     // Only initiator or any participant in an active call can end it
     const isParticipant = session.participants.some((p) => p.userId === userId);
     if (!isParticipant)
