@@ -5,11 +5,13 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma/prisma.service';
-import { PostStatus, VisibilityLevel, CommentStatus } from '@prisma/client';
+import { PostStatus, VisibilityLevel, CommentStatus, NotificationType } from '@prisma/client';
 import { CreatePostDto } from '../dto/create-post.dto';
 import { UpdatePostDto } from '../dto/update-post.dto';
 import { CreateCommentDto } from '../dto/create-comment.dto';
 import { ReactDto } from '../dto/react.dto';
+import { NotificationsService } from '../../notifications/services/notifications.service';
+import { PostsGateway } from '../gateways/posts.gateway';
 
 // Shared field selection — never expose passwordHash or sensitive data
 const POST_SELECT = {
@@ -51,7 +53,11 @@ const POST_SELECT = {
 
 @Injectable()
 export class PostsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+    private readonly postsGateway: PostsGateway,
+  ) {}
 
   // POST /posts
   async createPost(userId: string, dto: CreatePostDto) {
@@ -171,7 +177,7 @@ export class PostsService {
 
   // POST /posts/:id/reactions
   async reactToPost(userId: string, postId: string, dto: ReactDto) {
-    await this.assertPostExists(postId);
+    const post = await this.assertPostExists(postId);
 
     // Upsert — change reaction type if already reacted
     const existing = await this.prisma.postReaction.findUnique({
@@ -186,15 +192,35 @@ export class PostsService {
     }
 
     // Atomic: create reaction + increment counter cache
-    await this.prisma.$transaction([
+    const [, updatedPost] = await this.prisma.$transaction([
       this.prisma.postReaction.create({
         data: { postId, userId, reactionType: dto.reactionType },
       }),
       this.prisma.post.update({
         where: { id: postId },
         data: { reactionCount: { increment: 1 } },
+        select: { reactionCount: true },
       }),
     ]);
+
+    // Broadcast real-time reaction update to all clients
+    this.postsGateway.broadcastPostReaction(postId, {
+      postId,
+      reactionCount: updatedPost.reactionCount,
+    });
+
+    // Notify post author (skip if reacting to own post)
+    if (post.authorUserId !== userId) {
+      this.notificationsService.createNotification({
+        userId: post.authorUserId,
+        actorUserId: userId,
+        type: NotificationType.POST_REACTION,
+        title: 'Yêu thích',
+        body: 'đã thả tym vào bài viết của bạn.',
+        entityType: 'post',
+        entityId: postId,
+      });
+    }
 
     return { message: 'Reaction added' };
   }
@@ -222,7 +248,7 @@ export class PostsService {
 
   // POST /posts/:id/comments
   async addComment(userId: string, postId: string, dto: CreateCommentDto) {
-    await this.assertPostExists(postId);
+    const post = await this.assertPostExists(postId);
 
     // Validate parent comment belongs to same post if provided
     if (dto.parentCommentId) {
@@ -273,6 +299,22 @@ export class PostsService {
 
       return newComment;
     });
+
+    // Broadcast real-time new comment to all clients
+    this.postsGateway.broadcastNewComment(postId, comment);
+
+    // Notify post author (skip if commenting on own post)
+    if (post.authorUserId !== userId) {
+      this.notificationsService.createNotification({
+        userId: post.authorUserId,
+        actorUserId: userId,
+        type: NotificationType.COMMENT_POST,
+        title: 'Bình luận mới',
+        body: 'đã bình luận vào bài viết của bạn.',
+        entityType: 'post',
+        entityId: postId,
+      });
+    }
 
     return comment;
   }
