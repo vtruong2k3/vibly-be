@@ -59,4 +59,16 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   coverMediaId?: string;
+
+  @ApiPropertyOptional({ example: 'Hanoi University' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  education?: string;
+
+  @ApiPropertyOptional({ example: 'Single' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  maritalStatus?: string;
 }

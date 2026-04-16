@@ -20,6 +20,8 @@ export class ProfilesService {
         ...(dto.hometown !== undefined && { hometown: dto.hometown }),
         ...(dto.currentCity !== undefined && { currentCity: dto.currentCity }),
         ...(dto.website !== undefined && { website: dto.website }),
+        ...(dto.education !== undefined && { education: dto.education }),
+        ...(dto.maritalStatus !== undefined && { maritalStatus: dto.maritalStatus }),
         ...(dto.avatarMediaId !== undefined && {
           avatarMediaId: dto.avatarMediaId,
         }),

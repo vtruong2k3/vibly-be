@@ -72,6 +72,8 @@ model Profile {
   hometown      String?     @db.VarChar(120)
   currentCity   String?     @map("current_city") @db.VarChar(120)
   website       String?     @db.VarChar(255)
+  education     String?     @db.VarChar(255)
+  maritalStatus String?     @map("marital_status") @db.VarChar(50)
   createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
   avatarMedia   MediaAsset? @relation("ProfileAvatarMedia", fields: [avatarMediaId], references: [id])
