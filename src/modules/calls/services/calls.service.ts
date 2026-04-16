@@ -4,6 +4,8 @@ import {
   BadRequestException,
   ForbiddenException,
   Logger,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../../database/prisma/prisma.service';
@@ -11,6 +13,8 @@ import { AccessToken } from 'livekit-server-sdk';
 import { CallStatus, CallJoinStatus, NotificationType } from '@prisma/client';
 import { StartCallDto } from '../dto/start-call.dto';
 import { randomUUID } from 'crypto';
+import { MessagesService } from '../../messages/services/messages.service';
+import { CallsGateway } from '../gateways/calls.gateway';
 
 @Injectable()
 export class CallsService {
@@ -19,6 +23,10 @@ export class CallsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    @Inject(forwardRef(() => MessagesService))
+    private readonly messagesService: MessagesService,
+    @Inject(forwardRef(() => CallsGateway))
+    private readonly callsGateway: CallsGateway,
   ) {}
 
   // POST /calls/start — Initiator creates call session, invites participants
@@ -28,13 +36,18 @@ export class CallsService {
     // Validate participants exist
     const participants = await this.prisma.user.findMany({
       where: { id: { in: participantIds }, deletedAt: null, status: 'ACTIVE' },
-      select: { id: true, username: true },
+      select: { id: true, username: true, profile: { select: { displayName: true, avatarMediaId: true } } },
     });
     if (participants.length !== participantIds.length) {
       throw new BadRequestException(
         'One or more participants not found or invalid',
       );
     }
+
+    const initiator = await this.prisma.user.findUnique({
+      where: { id: initiatorId },
+      select: { id: true, username: true, profile: { select: { displayName: true, avatarMediaId: true } } },
+    });
 
     const roomName = `call-${randomUUID()}`;
 
@@ -53,12 +66,14 @@ export class CallsService {
               // Initiator joins immediately
               {
                 userId: initiatorId,
+                role: 'host',
                 joinStatus: CallJoinStatus.JOINED,
                 joinedAt: new Date(),
               },
-              // Invitees start as INVITED
+              // Others are invited
               ...participantIds.map((userId) => ({
                 userId,
+                role: 'participant',
                 joinStatus: CallJoinStatus.INVITED,
               })),
             ],
@@ -78,6 +93,17 @@ export class CallsService {
       });
 
       return session;
+    });
+
+    // Notify ALL invited participants via WebSocket
+    participantIds.forEach(calleeId => {
+      this.callsGateway.notifyIncomingCall(calleeId, {
+        callSessionId: callSession.id,
+        callType,
+        callerUserId: initiator?.id || initiatorId,
+        callerUsername: initiator?.username || 'Unknown',
+        roomName,
+      });
     });
 
     // Generate initiator's LiveKit token
@@ -189,7 +215,7 @@ export class CallsService {
         where: { callSessionId, NOT: { userId }, joinStatus: 'ACCEPTED' },
       });
       if (otherParticipants === 0) {
-        await tx.callSession.update({
+        const updatedSession = await tx.callSession.update({
           where: { id: callSessionId },
           data: {
             status: CallStatus.REJECTED,
@@ -197,6 +223,15 @@ export class CallsService {
             endedReason: 'rejected',
           },
         });
+        
+        if (updatedSession.conversationId) {
+          // Fire and forget system message
+          this.messagesService.createSystemCallMessage(
+            updatedSession.conversationId,
+            updatedSession.initiatorUserId,
+            JSON.stringify({ event: 'call_rejected', callType: updatedSession.callType })
+          ).catch(e => this.logger.error('Failed to create system message', e));
+        }
       }
       await tx.callEvent.create({
         data: {
@@ -206,6 +241,15 @@ export class CallsService {
         },
       });
     });
+
+    const session = await this.prisma.callSession.findUnique({
+      where: { id: callSessionId },
+      include: { participants: true },
+    });
+    if (session) {
+      const allParticipantIds = session.participants.map(p => p.userId);
+      this.callsGateway.notifyCallRejected(allParticipantIds, callSessionId, userId);
+    }
 
     return { message: 'Call rejected' };
   }
@@ -225,12 +269,12 @@ export class CallsService {
       throw new ForbiddenException('Not a participant of this call');
 
     const now = new Date();
-    const durationSeconds = session.startedAt
-      ? Math.floor((now.getTime() - session.startedAt.getTime()) / 1000)
+    const durationSeconds = session.answeredAt
+      ? Math.floor((now.getTime() - session.answeredAt.getTime()) / 1000)
       : 0;
 
     await this.prisma.$transaction(async (tx) => {
-      await tx.callSession.update({
+      const updatedSession = await tx.callSession.update({
         where: { id: callSessionId },
         data: {
           status: CallStatus.ENDED,
@@ -255,7 +299,19 @@ export class CallsService {
           payload: { durationSeconds },
         },
       });
+
+      if (updatedSession.conversationId) {
+        // Fire and forget system message
+        this.messagesService.createSystemCallMessage(
+          updatedSession.conversationId,
+          updatedSession.initiatorUserId,
+          JSON.stringify({ event: 'call_ended', callType: updatedSession.callType, durationSeconds })
+        ).catch(e => this.logger.error('Failed to create system message', e));
+      }
     });
+
+    const allParticipantIds = session.participants.map(p => p.userId);
+    this.callsGateway.notifyCallEnded(allParticipantIds, callSessionId, durationSeconds);
 
     return { message: 'Call ended', durationSeconds };
   }
@@ -285,6 +341,17 @@ export class CallsService {
       throw new ForbiddenException('Not a participant of this call');
 
     return session;
+  }
+
+  // GET /calls/config/ice-servers
+  async getIceServers() {
+    // In production, you would fetch these from Twilio or Coturn using ConfigService
+    return {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+      ],
+    };
   }
 
   // --- PRIVATE ---

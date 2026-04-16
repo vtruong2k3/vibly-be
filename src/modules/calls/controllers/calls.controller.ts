@@ -66,4 +66,11 @@ export class CallsController {
   ) {
     return this.callsService.getCallSession(user.sub, callSessionId);
   }
+
+  // GET /calls/ice-servers
+  @Get('config/ice-servers')
+  @ApiOperation({ summary: 'Get ICE servers (STUN/TURN) for WebRTC P2P' })
+  getIceServers(@CurrentUser() user: JwtPayload) {
+    return this.callsService.getIceServers();
+  }
 }

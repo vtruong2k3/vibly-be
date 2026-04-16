@@ -107,11 +107,12 @@ export class AuthService {
       throw new UnauthorizedException('Your account has been suspended');
     }
 
-    const isDev = process.env.NODE_ENV !== 'production';
-    if (!isDev && !user.emailVerifiedAt) {
-      throw new UnauthorizedException(
-        'Please verify your email address before logging in',
-      );
+    if (!user.emailVerifiedAt) {
+      throw new UnauthorizedException({
+        code: 'UNVERIFIED_EMAIL',
+        message: 'Please verify your email address before logging in.',
+        email: dto.email,
+      });
     }
 
     // Create DB session — enables per-device management & remote revocation

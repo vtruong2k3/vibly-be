@@ -82,6 +82,7 @@ export class ConversationsService {
             role: true,
             user: {
               select: {
+                id: true,
                 username: true,
                 profile: { select: { displayName: true, avatarMediaId: true } },
               },
@@ -98,12 +99,12 @@ export class ConversationsService {
       include: {
         conversation: {
           include: {
-            // Need to fetch other members to display conversation names for DIRECT chats
             members: {
               select: {
                 userId: true,
                 user: {
                   select: {
+                    id: true,
                     username: true,
                     profile: {
                       select: { displayName: true, avatarMediaId: true },
@@ -112,7 +113,6 @@ export class ConversationsService {
                 },
               },
             },
-            // Load the last message for the inbox preview
             messages: {
               where: { deletedAt: null },
               orderBy: { createdAt: 'desc' },
@@ -131,20 +131,37 @@ export class ConversationsService {
       orderBy: { conversation: { updatedAt: 'desc' } },
     });
 
+    // Collect all other-participant user IDs to batch-check friendships
+    const otherUserIds = memberships
+      .map((m) => m.conversation.members.find((mem) => mem.userId !== userId)?.userId)
+      .filter(Boolean) as string[];
+
+    // Fetch existing friendships in one query
+    const friendships = await this.prisma.friendship.findMany({
+      where: { userId, friendId: { in: otherUserIds } },
+      select: { friendId: true },
+    });
+    const friendSet = new Set(friendships.map((f) => f.friendId));
+
     return memberships.map((m) => {
       const conv = m.conversation;
+      const otherUserId = conv.members.find((mem) => mem.userId !== userId)?.userId;
+      const isRequest = !!otherUserId && !friendSet.has(otherUserId);
+
       return {
         id: conv.id,
         type: conv.type,
-
+        // isRequest: true → "Tin nhắn chờ" (non-friend), false → normal Inbox
+        isRequest,
         unreadCount: m.unreadCount,
         lastReadAt: m.lastReadAt,
         messages: conv.messages,
-        members: conv.members.filter((mem) => mem.userId !== userId), // Excluding self from preview list
+        members: conv.members.filter((mem) => mem.userId !== userId),
         updatedAt: conv.updatedAt,
       };
     });
   }
+
 
   async markAsRead(userId: string, conversationId: string) {
     const membership = await this.prisma.conversationMember.findUnique({

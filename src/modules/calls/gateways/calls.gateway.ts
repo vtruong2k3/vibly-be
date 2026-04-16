@@ -71,4 +71,30 @@ export class CallsGateway {
     // Broadcast cancel to all in personal rooms (CallsService will handle DB)
     this.server.emit('call:canceled', { callSessionId, canceledBy: user.sub });
   }
+
+  // Client → Server → Client: Relay WebRTC SDP (Offer / Answer)
+  @SubscribeMessage('webrtc_sdp')
+  handleWebRtcSdp(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { targetUserId: string; callSessionId: string; sdp: any }
+  ) {
+    this.server.to(`user:${payload.targetUserId}`).emit('webrtc_sdp', {
+      senderUserId: client.data.user.sub,
+      callSessionId: payload.callSessionId,
+      sdp: payload.sdp,
+    });
+  }
+
+  // Client → Server → Client: Relay WebRTC ICE Candidate
+  @SubscribeMessage('webrtc_ice')
+  handleWebRtcIce(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { targetUserId: string; callSessionId: string; candidate: any }
+  ) {
+    this.server.to(`user:${payload.targetUserId}`).emit('webrtc_ice', {
+      senderUserId: client.data.user.sub,
+      callSessionId: payload.callSessionId,
+      candidate: payload.candidate,
+    });
+  }
 }

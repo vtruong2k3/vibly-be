@@ -53,6 +53,7 @@ export class MessagesService {
         },
         select: {
           id: true,
+          conversationId: true,
           content: true,
           messageType: true,
           status: true,
@@ -95,6 +96,40 @@ export class MessagesService {
     return message;
   }
 
+  async createSystemCallMessage(
+    conversationId: string,
+    actingUserId: string,
+    content: string,
+  ) {
+    const message = await this.prisma.message.create({
+      data: {
+        conversationId,
+        senderUserId: actingUserId,
+        content,
+        messageType: 'CALL_EVENT',
+        status: 'SENT',
+      },
+      select: {
+        id: true,
+        conversationId: true,
+        content: true,
+        messageType: true,
+        status: true,
+        createdAt: true,
+        senderUserId: true,
+        sender: {
+          select: {
+            username: true,
+            profile: { select: { displayName: true, avatarMediaId: true } },
+          },
+        },
+      },
+    });
+
+    this.messagesGateway.broadcastNewMessage(conversationId, message);
+    return message;
+  }
+
   async getMessages(
     userId: string,
     conversationId: string,
@@ -113,6 +148,7 @@ export class MessagesService {
       where: { conversationId, deletedAt: null },
       select: {
         id: true,
+        conversationId: true,
         content: true,
         messageType: true,
         status: true,
