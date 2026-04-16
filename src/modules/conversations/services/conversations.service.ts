@@ -8,10 +8,14 @@ import {
 import { PrismaService } from '../../../database/prisma/prisma.service';
 import { ConversationType, ConversationMemberRole } from '@prisma/client';
 import { CreateConversationDto } from 'src/modules/conversations/dto/create-conversation.dto';
+import { PresenceService } from '../../presence/services/presence.service';
 
 @Injectable()
 export class ConversationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly presenceService: PresenceService,
+  ) {}
 
   async createConversation(creatorId: string, dto: CreateConversationDto) {
     const allParticipantIds = [...new Set([...dto.participantIds, creatorId])];
@@ -24,7 +28,6 @@ export class ConversationsService {
       }
 
       // Check if DIRECT conversation already exists
-      // In Prisma, we can find a conversation where both users are members and type is DIRECT
       const existing = await this.prisma.conversation.findFirst({
         where: {
           type: ConversationType.DIRECT,
@@ -64,7 +67,6 @@ export class ConversationsService {
     return this.prisma.conversation.create({
       data: {
         type: dto.type,
-
         members: {
           create: allParticipantIds.map((userId) => ({
             userId,
@@ -131,37 +133,49 @@ export class ConversationsService {
       orderBy: { conversation: { updatedAt: 'desc' } },
     });
 
-    // Collect all other-participant user IDs to batch-check friendships
+    // Collect all other-participant user IDs
     const otherUserIds = memberships
       .map((m) => m.conversation.members.find((mem) => mem.userId !== userId)?.userId)
       .filter(Boolean) as string[];
 
-    // Fetch existing friendships in one query
-    const friendships = await this.prisma.friendship.findMany({
-      where: { userId, friendId: { in: otherUserIds } },
-      select: { friendId: true },
-    });
+    // Batch fetch presence + friendships in parallel
+    const [presenceMap, friendships] = await Promise.all([
+      this.presenceService.getPresenceBulk(otherUserIds),
+      this.prisma.friendship.findMany({
+        where: { userId, friendId: { in: otherUserIds } },
+        select: { friendId: true },
+      }),
+    ]);
+
     const friendSet = new Set(friendships.map((f) => f.friendId));
 
     return memberships.map((m) => {
       const conv = m.conversation;
-      const otherUserId = conv.members.find((mem) => mem.userId !== userId)?.userId;
+      const otherMember = conv.members.find((mem) => mem.userId !== userId);
+      const otherUserId = otherMember?.userId;
       const isRequest = !!otherUserId && !friendSet.has(otherUserId);
+      const presence = otherUserId ? presenceMap[otherUserId] : null;
 
       return {
         id: conv.id,
         type: conv.type,
-        // isRequest: true → "Tin nhắn chờ" (non-friend), false → normal Inbox
         isRequest,
         unreadCount: m.unreadCount,
         lastReadAt: m.lastReadAt,
         messages: conv.messages,
-        members: conv.members.filter((mem) => mem.userId !== userId),
+        members: conv.members
+          .filter((mem) => mem.userId !== userId)
+          .map((mem) => ({
+            ...mem,
+            user: {
+              ...mem.user,
+              presence: presenceMap[mem.userId] ?? { isOnline: false, lastSeenAt: null },
+            },
+          })),
         updatedAt: conv.updatedAt,
       };
     });
   }
-
 
   async markAsRead(userId: string, conversationId: string) {
     const membership = await this.prisma.conversationMember.findUnique({

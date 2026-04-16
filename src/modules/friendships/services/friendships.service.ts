@@ -11,6 +11,7 @@ import { PrismaService } from '../../../database/prisma/prisma.service';
 import { FriendRequestStatus } from '@prisma/client';
 import { SendFriendRequestDto } from '../dto/send-friend-request.dto';
 import { PresenceGateway } from '../../presence/gateways/presence.gateway';
+import { PresenceService } from '../../presence/services/presence.service';
 
 @Injectable()
 export class FriendshipsService {
@@ -18,6 +19,8 @@ export class FriendshipsService {
     private readonly prisma: PrismaService,
     @Inject(forwardRef(() => PresenceGateway))
     private readonly presenceGateway: PresenceGateway,
+    @Inject(forwardRef(() => PresenceService))
+    private readonly presenceService: PresenceService,
   ) {}
 
   // POST /friends/request
@@ -260,7 +263,7 @@ export class FriendshipsService {
 
   // GET /friends — list friends with cursor pagination
   async listFriends(userId: string, cursor?: string, limit = 20) {
-    const take = Math.min(limit, 50);
+    const take = Math.min(limit, 500);
 
     const friendships = await this.prisma.friendship.findMany({
       where: { userId },
@@ -278,10 +281,17 @@ export class FriendshipsService {
       orderBy: { createdAt: 'desc' },
     });
 
+    // Batch-fetch presence for all friends in a single Redis pipeline
+    const friendIds = friendships.map((f) => f.friend.id);
+    const presenceMap = await this.presenceService.getPresenceBulk(friendIds);
+
     return {
       data: friendships.map((f) => ({
         friendshipId: f.id,
-        user: f.friend,
+        user: {
+          ...f.friend,
+          presence: presenceMap[f.friend.id] ?? { isOnline: false, lastSeenAt: null },
+        },
         friendsSince: f.createdAt,
       })),
       meta: {

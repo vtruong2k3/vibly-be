@@ -266,7 +266,7 @@ export class CallsService {
     // Idempotent guard — if already ended, return success silently.
     // Prevents errors from duplicate endCall calls (race condition between
     // socket event handler and LiveKit onDisconnected callback on client side).
-    const terminalStatuses = [CallStatus.ENDED, CallStatus.REJECTED, CallStatus.CANCELED];
+    const terminalStatuses: CallStatus[] = [CallStatus.ENDED, CallStatus.REJECTED, CallStatus.CANCELED];
     if (terminalStatuses.includes(session.status)) {
       return { message: 'Call ended', durationSeconds: session.durationSeconds ?? 0 };
     }

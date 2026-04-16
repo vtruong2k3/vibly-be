@@ -2,6 +2,11 @@ import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Redis } from 'ioredis';
 
+export interface UserPresenceData {
+  isOnline: boolean;
+  lastSeenAt: string | null;
+}
+
 @Injectable()
 export class PresenceService implements OnModuleDestroy {
   private readonly redis: Redis;
@@ -25,13 +30,18 @@ export class PresenceService implements OnModuleDestroy {
     await this.redis.expire(`user:online:${userId}`, 86400);
   }
 
-  async setOffline(userId: string, socketId: string) {
+  async setOffline(userId: string, socketId: string): Promise<boolean> {
     await this.redis.srem(`user:online:${userId}`, socketId);
     const remaining = await this.redis.scard(`user:online:${userId}`);
-    // If no sockets left, remove the key completely
+
     if (remaining === 0) {
+      // Last socket disconnected — record lastSeenAt and remove online key
+      const now = new Date().toISOString();
+      await this.redis.set(`user:lastSeen:${userId}`, now, 'EX', 604800); // 7 days TTL
       await this.redis.del(`user:online:${userId}`);
+      return true; // truly offline now
     }
+    return false; // still has other tabs open
   }
 
   async isUserOnline(userId: string): Promise<boolean> {
@@ -39,20 +49,63 @@ export class PresenceService implements OnModuleDestroy {
     return count > 0;
   }
 
-  async getOnlineStatuses(userIds: string[]): Promise<Record<string, boolean>> {
+  async getLastSeen(userId: string): Promise<string | null> {
+    return this.redis.get(`user:lastSeen:${userId}`);
+  }
+
+  async getPresence(userId: string): Promise<UserPresenceData> {
+    const isOnline = await this.isUserOnline(userId);
+    const lastSeenAt = isOnline ? null : await this.getLastSeen(userId);
+    return { isOnline, lastSeenAt };
+  }
+
+  async getPresenceBulk(
+    userIds: string[],
+  ): Promise<Record<string, UserPresenceData>> {
+    if (userIds.length === 0) return {};
+
     const pipeline = this.redis.pipeline();
     for (const id of userIds) {
       pipeline.scard(`user:online:${id}`);
     }
-    const results = await pipeline.exec();
+    const onlineResults = await pipeline.exec();
 
-    const statuses: Record<string, boolean> = {};
-    if (results) {
+    // Second pipeline for lastSeenAt of offline users
+    const offlineIds: string[] = [];
+    const onlineMap: Record<string, boolean> = {};
+
+    if (onlineResults) {
       userIds.forEach((id, index) => {
-        const [err, count] = results[index] as [Error | null, unknown];
-        statuses[id] = !err && typeof count === 'number' && count > 0;
+        const [err, count] = onlineResults[index] as [Error | null, number];
+        const isOnline = !err && count > 0;
+        onlineMap[id] = isOnline;
+        if (!isOnline) offlineIds.push(id);
       });
     }
-    return statuses;
+
+    // Batch-fetch lastSeenAt for offline users
+    const lastSeenMap: Record<string, string | null> = {};
+    if (offlineIds.length > 0) {
+      const pipeline2 = this.redis.pipeline();
+      for (const id of offlineIds) {
+        pipeline2.get(`user:lastSeen:${id}`);
+      }
+      const lastSeenResults = await pipeline2.exec();
+      if (lastSeenResults) {
+        offlineIds.forEach((id, index) => {
+          const [err, val] = lastSeenResults[index] as [Error | null, string | null];
+          lastSeenMap[id] = err ? null : val;
+        });
+      }
+    }
+
+    const result: Record<string, UserPresenceData> = {};
+    for (const id of userIds) {
+      result[id] = {
+        isOnline: onlineMap[id] ?? false,
+        lastSeenAt: onlineMap[id] ? null : (lastSeenMap[id] ?? null),
+      };
+    }
+    return result;
   }
 }

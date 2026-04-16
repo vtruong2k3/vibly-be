@@ -26,6 +26,6 @@ export class PresenceController {
   async getStatuses(@Query('ids') idsRaw: string) {
     if (!idsRaw) return {};
     const ids = idsRaw.split(',').filter((id) => id.length > 0);
-    return this.presenceService.getOnlineStatuses(ids);
+    return this.presenceService.getPresenceBulk(ids);
   }
 }

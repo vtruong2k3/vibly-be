@@ -64,20 +64,19 @@ export class PresenceGateway
     const user: JwtPayload | undefined = client.data.user;
     if (user) {
       const userId = user.sub;
-      await this.presenceService.setOffline(userId, client.id);
+      const trulyOffline = await this.presenceService.setOffline(userId, client.id);
 
-      const isStillOnline = await this.presenceService.isUserOnline(userId);
-      if (!isStillOnline) {
-        // Broadcast to friends that user is offline
-        this.broadcastStatus(userId, false);
+      if (trulyOffline) {
+        // Get the lastSeenAt we just stored and broadcast it
+        const lastSeenAt = await this.presenceService.getLastSeen(userId);
+        this.broadcastStatus(userId, false, lastSeenAt);
       }
     }
   }
 
   // --- PRIVATE HELPER ---
-  private async broadcastStatus(userId: string, isOnline: boolean) {
+  private async broadcastStatus(userId: string, isOnline: boolean, lastSeenAt?: string | null) {
     try {
-      // Get all friends (limit to first 500 for practical broadcast, Phase 2 could optimize)
       const cachedFriendsResult = await this.friendshipsService.listFriends(
         userId,
         undefined,
@@ -86,11 +85,10 @@ export class PresenceGateway
       const friendIds = cachedFriendsResult.data.map((f) => f.user.id);
 
       if (friendIds.length > 0) {
-        // Emit to all friends' personal rooms
         const rooms = friendIds.map((fid) => `user:${fid}`);
         this.server
           .to(rooms)
-          .emit('user_presence_changed', { userId, isOnline });
+          .emit('user_presence_changed', { userId, isOnline, lastSeenAt: lastSeenAt ?? null });
       }
     } catch (e) {
       // Ignore broadcast error
