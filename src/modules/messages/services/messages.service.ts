@@ -62,7 +62,7 @@ export class MessagesService {
           sender: {
             select: {
               username: true,
-              profile: { select: { displayName: true, avatarMediaId: true } },
+              profile: { select: { displayName: true, avatarMediaId: true, avatarMedia: { select: { bucket: true, objectKey: true } } } },
             },
           },
         },
@@ -120,7 +120,7 @@ export class MessagesService {
         sender: {
           select: {
             username: true,
-            profile: { select: { displayName: true, avatarMediaId: true } },
+            profile: { select: { displayName: true, avatarMediaId: true, avatarMedia: { select: { bucket: true, objectKey: true } } } },
           },
         },
       },
@@ -157,7 +157,7 @@ export class MessagesService {
         sender: {
           select: {
             username: true,
-            profile: { select: { displayName: true, avatarMediaId: true } },
+            profile: { select: { displayName: true, avatarMediaId: true, avatarMedia: { select: { bucket: true, objectKey: true } } } },
           },
         },
         attachments: {

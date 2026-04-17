@@ -36,7 +36,7 @@ export class NotificationsService {
         actor: {
           select: {
             username: true,
-            profile: { select: { displayName: true, avatarMediaId: true } },
+            profile: { select: { displayName: true, avatarMediaId: true, avatarMedia: { select: { bucket: true, objectKey: true } } } },
           },
         },
       },
@@ -57,7 +57,7 @@ export class NotificationsService {
         actor: {
           select: {
             username: true,
-            profile: { select: { displayName: true, avatarMediaId: true } },
+            profile: { select: { displayName: true, avatarMediaId: true, avatarMedia: { select: { bucket: true, objectKey: true } } } },
           },
         },
       },

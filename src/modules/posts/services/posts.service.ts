@@ -29,7 +29,7 @@ const POST_SELECT = {
     select: {
       id: true,
       username: true,
-      profile: { select: { displayName: true, avatarMediaId: true } },
+      profile: { select: { displayName: true, avatarMediaId: true, avatarMedia: { select: { bucket: true, objectKey: true } } } },
     },
   },
   media: {
@@ -278,7 +278,7 @@ export class PostsService {
             select: {
               id: true,
               username: true,
-              profile: { select: { displayName: true, avatarMediaId: true } },
+              profile: { select: { displayName: true, avatarMediaId: true, avatarMedia: { select: { bucket: true, objectKey: true } } } },
             },
           },
         },
@@ -341,7 +341,7 @@ export class PostsService {
           select: {
             id: true,
             username: true,
-            profile: { select: { displayName: true, avatarMediaId: true } },
+            profile: { select: { displayName: true, avatarMediaId: true, avatarMedia: { select: { bucket: true, objectKey: true } } } },
           },
         },
       },

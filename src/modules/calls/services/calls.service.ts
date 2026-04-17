@@ -36,7 +36,7 @@ export class CallsService {
     // Validate participants exist
     const participants = await this.prisma.user.findMany({
       where: { id: { in: participantIds }, deletedAt: null, status: 'ACTIVE' },
-      select: { id: true, username: true, profile: { select: { displayName: true, avatarMediaId: true } } },
+      select: { id: true, username: true, profile: { select: { displayName: true, avatarMediaId: true, avatarMedia: { select: { bucket: true, objectKey: true } } } } },
     });
     if (participants.length !== participantIds.length) {
       throw new BadRequestException(
@@ -46,7 +46,7 @@ export class CallsService {
 
     const initiator = await this.prisma.user.findUnique({
       where: { id: initiatorId },
-      select: { id: true, username: true, profile: { select: { displayName: true, avatarMediaId: true } } },
+      select: { id: true, username: true, profile: { select: { displayName: true, avatarMediaId: true, avatarMedia: { select: { bucket: true, objectKey: true } } } } },
     });
 
     const roomName = `call-${randomUUID()}`;
@@ -334,7 +334,7 @@ export class CallsService {
             user: {
               select: {
                 username: true,
-                profile: { select: { displayName: true, avatarMediaId: true } },
+                profile: { select: { displayName: true, avatarMediaId: true, avatarMedia: { select: { bucket: true, objectKey: true } } } },
               },
             },
           },
