@@ -94,10 +94,17 @@ export class AuthService {
       where: { email: dto.email.toLowerCase(), deletedAt: null },
     });
 
+    // Block Google-only accounts from password login
+    if (user?.authProvider === 'GOOGLE') {
+      throw new UnauthorizedException(
+        'This account uses Google Sign-In. Please use the "Continue with Google" option.',
+      );
+    }
+
     // Always compare hash even if user not found (timing attack prevention)
     const passwordValid =
       user != null &&
-      (await this.passwordService.verify(user.passwordHash, dto.password));
+      (await this.passwordService.verify(user.passwordHash ?? '', dto.password));
 
     if (!user || !passwordValid) {
       throw new UnauthorizedException('Email or password is incorrect');
@@ -114,6 +121,7 @@ export class AuthService {
         email: dto.email,
       });
     }
+
 
     // Create DB session — enables per-device management & remote revocation
     const refreshToken = this.tokenService.generateRefreshToken();

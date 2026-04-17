@@ -12,4 +12,9 @@ export const authConfig = registerAs('auth', () => ({
   argon2MemoryCost: 65536, // 64MB
   argon2TimeCost: 3,
   argon2Parallelism: 4,
+  // Google OAuth2
+  googleClientId: process.env.GOOGLE_CLIENT_ID,
+  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  googleCallbackUrl: process.env.GOOGLE_CALLBACK_URL,
+  frontendOAuthSuccessUrl: process.env.FRONTEND_OAUTH_SUCCESS_URL ?? 'http://localhost:3000/auth/callback',
 }));

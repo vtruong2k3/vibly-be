@@ -12,7 +12,9 @@ model User {
   id                      String                    @id @default(uuid()) @db.Uuid
   email                   String                    @unique
   username                String                    @unique
-  passwordHash            String                    @map("password_hash")
+  passwordHash            String?                   @map("password_hash")
+  authProvider            AuthProvider              @default(LOCAL) @map("auth_provider")
+  googleId                String?                   @unique @map("google_id")
   role                    UserRole                  @default(USER)
   status                  UserStatus                @default(ACTIVE)
   emailVerifiedAt         DateTime?                 @map("email_verified_at") @db.Timestamptz(6)
@@ -645,6 +647,11 @@ model AdminAuditLog {
   @@index([actorUserId, createdAt])
   @@index([entityType, entityId, createdAt])
   @@map("admin_audit_logs")
+}
+
+enum AuthProvider {
+  LOCAL
+  GOOGLE
 }
 
 enum UserRole {
