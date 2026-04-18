@@ -15,32 +15,34 @@ export class AdminAnalyticsController {
   constructor(private readonly analyticsService: AdminAnalyticsService) {}
 
   @Get('overview')
+  @ApiQuery({ name: 'from', required: false, type: String, example: '2026-04-01T00:00:00Z' })
+  @ApiQuery({ name: 'to', required: false, type: String, example: '2026-04-15T23:59:59Z' })
   @ApiOperation({ summary: '[Admin] Dashboard KPIs — users, content, reports counts + deltas' })
-  getOverview() {
-    return this.analyticsService.getOverview();
+  getOverview(@Query('from') from?: string, @Query('to') to?: string) {
+    return this.analyticsService.getOverview(from, to);
   }
 
   @Get('registrations')
-  @ApiQuery({ name: 'days', required: false, type: Number, example: 30 })
-  @ApiOperation({ summary: '[Admin] Daily registration trend (last N days)' })
-  getRegistrationTrend(@Query('days') days?: string) {
-    return this.analyticsService.getRegistrationTrend(
-      days ? parseInt(days, 10) : 30,
-    );
+  @ApiQuery({ name: 'from', required: false, type: String })
+  @ApiQuery({ name: 'to', required: false, type: String })
+  @ApiOperation({ summary: '[Admin] Daily registration trend (date range)' })
+  getRegistrationTrend(@Query('from') from?: string, @Query('to') to?: string) {
+    return this.analyticsService.getRegistrationTrend(from, to);
   }
 
   @Get('content')
-  @ApiQuery({ name: 'days', required: false, type: Number, example: 30 })
-  @ApiOperation({ summary: '[Admin] Daily posts + comments trend (last N days)' })
-  getContentTrend(@Query('days') days?: string) {
-    return this.analyticsService.getContentTrend(
-      days ? parseInt(days, 10) : 30,
-    );
+  @ApiQuery({ name: 'from', required: false, type: String })
+  @ApiQuery({ name: 'to', required: false, type: String })
+  @ApiOperation({ summary: '[Admin] Daily posts + comments trend (date range)' })
+  getContentTrend(@Query('from') from?: string, @Query('to') to?: string) {
+    return this.analyticsService.getContentTrend(from, to);
   }
 
   @Get('reports/breakdown')
+  @ApiQuery({ name: 'from', required: false, type: String })
+  @ApiQuery({ name: 'to', required: false, type: String })
   @ApiOperation({ summary: '[Admin] Report breakdown by reason code and status' })
-  getReportBreakdown() {
-    return this.analyticsService.getReportBreakdown();
+  getReportBreakdown(@Query('from') from?: string, @Query('to') to?: string) {
+    return this.analyticsService.getReportBreakdown(from, to);
   }
 }
