@@ -57,6 +57,14 @@ model User {
   presence                UserPresence?
   privacySettings         UserPrivacySettings?
   securitySettings        UserSecuritySettings?
+  // Admin TOTP 2FA
+  totpSecret              String?                   @map("totp_secret")
+  totpEnabled             Boolean                   @default(false) @map("totp_enabled")
+  totpVerifiedAt          DateTime?                 @map("totp_verified_at") @db.Timestamptz(6)
+  totpBackupCodes         AdminTotpBackupCode[]
+  // Report relations with admin roles
+  reportsModerating       Report[]                  @relation("ReportModerator")
+  reportsResolved         Report[]                  @relation("ReportResolver")
 
   @@index([status])
   @@index([createdAt])
@@ -243,6 +251,13 @@ model MediaAsset {
   createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
   deletedAt          DateTime?           @map("deleted_at") @db.Timestamptz(6)
+  // Media quarantine lifecycle
+  storageStatus      MediaStorageStatus  @default(ACTIVE) @map("storage_status")
+  quarantinedAt      DateTime?           @map("quarantined_at") @db.Timestamptz(6)
+  purgeScheduledAt   DateTime?           @map("purge_scheduled_at") @db.Timestamptz(6)
+  purgedAt           DateTime?           @map("purged_at") @db.Timestamptz(6)
+  quarantineReason   String?             @map("quarantine_reason")
+  restoredAt         DateTime?           @map("restored_at") @db.Timestamptz(6)
   owner              User                @relation("MediaOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
   variants           MediaVariant[]
   messageAttachments MessageAttachment[]
@@ -253,6 +268,7 @@ model MediaAsset {
   @@unique([bucket, objectKey])
   @@index([ownerUserId, createdAt])
   @@index([status])
+  @@index([storageStatus, purgeScheduledAt])
   @@map("media_assets")
 }
 
@@ -603,14 +619,23 @@ model Report {
   reasonCode        String             @map("reason_code") @db.VarChar(120)
   reasonText        String?            @map("reason_text")
   status            ReportStatus       @default(OPEN)
+  // Admin moderation extensions
+  severity          ReportSeverity     @default(MEDIUM)
+  moderatorId       String?            @map("moderator_id") @db.Uuid
+  resolvedAt        DateTime?          @map("resolved_at") @db.Timestamptz(6)
+  resolvedByUserId  String?            @map("resolved_by_user_id") @db.Uuid
+  resolveNote       String?            @map("resolve_note")
   createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
   moderationActions ModerationAction[]
   reporter          User               @relation("ReportReporter", fields: [reporterUserId], references: [id], onDelete: Cascade)
+  moderator         User?              @relation("ReportModerator", fields: [moderatorId], references: [id])
+  resolvedBy        User?              @relation("ReportResolver", fields: [resolvedByUserId], references: [id])
 
   @@index([targetType, targetId])
   @@index([status, createdAt])
   @@index([reporterUserId, createdAt])
+  @@index([severity, status])
   @@map("reports")
 }
 
@@ -641,12 +666,26 @@ model AdminAuditLog {
   ip          String?  @db.Inet
   userAgent   String?  @map("user_agent")
   payload     Json?
+  reason      String?  @db.VarChar(500)
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   actor       User     @relation("AdminAuditActor", fields: [actorUserId], references: [id], onDelete: Cascade)
 
   @@index([actorUserId, createdAt])
   @@index([entityType, entityId, createdAt])
+  @@index([action, createdAt])
   @@map("admin_audit_logs")
+}
+
+model AdminTotpBackupCode {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  codeHash  String    @map("code_hash")
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("admin_totp_backup_codes")
 }
 
 enum AuthProvider {
@@ -663,6 +702,7 @@ enum UserRole {
 enum UserStatus {
   ACTIVE
   SUSPENDED
+  BANNED
   DELETED
 }
 
@@ -795,6 +835,19 @@ enum ReportTargetType {
   POST
   COMMENT
   MESSAGE
+}
+
+enum MediaStorageStatus {
+  ACTIVE
+  QUARANTINED
+  PURGED
+}
+
+enum ReportSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
 
 enum ReportStatus {

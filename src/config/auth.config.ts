@@ -17,4 +17,9 @@ export const authConfig = registerAs('auth', () => ({
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
   googleCallbackUrl: process.env.GOOGLE_CALLBACK_URL,
   frontendOAuthSuccessUrl: process.env.FRONTEND_OAUTH_SUCCESS_URL ?? 'http://localhost:3000/auth/callback',
+  // Admin auth — isolated secrets, never shared with user JWT
+  jwtAdminAccessSecret: process.env.JWT_ADMIN_ACCESS_SECRET,
+  jwtAdminTempSecret: process.env.JWT_ADMIN_TEMP_SECRET,
+  // TOTP encryption key: 32-byte hex string for AES-256-CBC
+  totpEncryptionKey: process.env.TOTP_ENCRYPTION_KEY,
 }));
