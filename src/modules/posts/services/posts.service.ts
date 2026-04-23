@@ -12,6 +12,7 @@ import { CreateCommentDto } from '../dto/create-comment.dto';
 import { ReactDto } from '../dto/react.dto';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 import { PostsGateway } from '../gateways/posts.gateway';
+import { FeedService } from '../../feed/services/feed.service';
 
 // Shared field selection — never expose passwordHash or sensitive data
 const POST_SELECT = {
@@ -57,7 +58,8 @@ export class PostsService {
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
     private readonly postsGateway: PostsGateway,
-  ) {}
+    private readonly feedService: FeedService,
+  ) { }
 
   // POST /posts
   async createPost(userId: string, dto: CreatePostDto) {
@@ -90,6 +92,13 @@ export class PostsService {
       }
 
       return newPost;
+    });
+
+    // Fire-and-forget fan-out: push FeedEdge rows to all friends asynchronously
+    // This does NOT await — the HTTP response returns immediately
+    void this.feedService.enqueueFanOut({
+      postId: post.id,
+      authorUserId: userId,
     });
 
     return post;
