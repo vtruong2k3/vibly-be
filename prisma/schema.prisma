@@ -214,6 +214,7 @@ model Friendship {
   user      User     @relation("FriendshipsUser", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, friendId])
+  @@index([userId])
   @@index([friendId])
   @@map("friendships")
 }

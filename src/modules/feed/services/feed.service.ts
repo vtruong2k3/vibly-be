@@ -9,7 +9,7 @@ export class FeedService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-  ) {}
+  ) { }
 
   // GET /feed?cursor= — Friend activity feed with cursor pagination
   // Plan: fan-out-on-write via feed_edges (Phase 2 build)
@@ -102,6 +102,7 @@ export class FeedService {
       },
     };
 
+    await this.cacheManager.set(cacheKey, result, 30_000); // 30s TTL — feed freshness window
     return result;
   }
 
