@@ -8,9 +8,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "heroku-prebuild": "pnpm install --frozen-lockfile",
-    "build": "nest build",
-    "heroku-build": "prisma generate && nest build",
-    "heroku-postbuild": "pnpm prune --prod",
+    "build": "prisma generate && nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "node dist/main",
     "start:dev": "nest start --watch",
