@@ -3,6 +3,7 @@ import { Server } from 'socket.io';
 import { UseGuards } from '@nestjs/common';
 import { WsJwtGuard } from '../../../common/guards/ws-jwt.guard';
 import { Notification } from '@prisma/client';
+import { SOCKET_EVENTS } from '../../../common/constants/socket-events';
 
 @UseGuards(WsJwtGuard)
 @WebSocketGateway({
@@ -15,6 +16,6 @@ export class NotificationsGateway {
   // Called by internal services (e.g. Likes, Comments, FriendRequests) to push notification
   broadcastNotification(userId: string, notification: Partial<Notification>) {
     // We rely on the `user:${userId}` room created in PresenceGateway on connection
-    this.server.to(`user:${userId}`).emit('new_notification', notification);
+    this.server.to(`user:${userId}`).emit(SOCKET_EVENTS.NEW_NOTIFICATION, notification);
   }
 }

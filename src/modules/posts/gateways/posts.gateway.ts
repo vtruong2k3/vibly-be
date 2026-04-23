@@ -1,5 +1,6 @@
 import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server } from 'socket.io';
+import { SOCKET_EVENTS } from '../../../common/constants/socket-events';
 
 /**
  * PostsGateway – broadcasts real-time post interaction events (like/comment)
@@ -15,11 +16,11 @@ export class PostsGateway {
 
   /** Emitted when reaction count on a post changes */
   broadcastPostReaction(postId: string, data: { reactionCount: number; postId: string }) {
-    this.server.emit('post:reaction_updated', data);
+    this.server.emit(SOCKET_EVENTS.POST_REACTION_UPDATED, data);
   }
 
   /** Emitted when comment count on a post changes + new comment payload */
   broadcastNewComment(postId: string, comment: any) {
-    this.server.emit('post:new_comment', { postId, comment });
+    this.server.emit(SOCKET_EVENTS.POST_NEW_COMMENT, { postId, comment });
   }
 }

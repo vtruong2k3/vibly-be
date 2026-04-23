@@ -12,13 +12,13 @@ import { FriendshipsService } from '../../friendships/services/friendships.servi
 import { JwtPayload } from '../../../common/decorators/current-user.decorator';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { SOCKET_EVENTS } from '../../../common/constants/socket-events';
 
 @WebSocketGateway({
   cors: { origin: true, credentials: true },
 })
 export class PresenceGateway
-  implements OnGatewayConnection, OnGatewayDisconnect
-{
+  implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
@@ -28,7 +28,7 @@ export class PresenceGateway
     private readonly friendshipsService: FriendshipsService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   // Manual auth on connection because Guards don't map to handleConnection
   async handleConnection(client: Socket) {
@@ -88,7 +88,7 @@ export class PresenceGateway
         const rooms = friendIds.map((fid) => `user:${fid}`);
         this.server
           .to(rooms)
-          .emit('user_presence_changed', { userId, isOnline, lastSeenAt: lastSeenAt ?? null });
+          .emit(SOCKET_EVENTS.USER_PRESENCE_CHANGED, { userId, isOnline, lastSeenAt: lastSeenAt ?? null });
       }
     } catch (e) {
       // Ignore broadcast error

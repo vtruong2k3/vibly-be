@@ -9,6 +9,7 @@ import { Server, Socket } from 'socket.io';
 import { UseGuards } from '@nestjs/common';
 import { WsJwtGuard } from '../../../common/guards/ws-jwt.guard';
 import { JwtPayload } from '../../../common/decorators/current-user.decorator';
+import { SOCKET_EVENTS } from '../../../common/constants/socket-events';
 
 @UseGuards(WsJwtGuard)
 @WebSocketGateway({
@@ -18,7 +19,7 @@ export class MessagesGateway {
   @WebSocketServer()
   server: Server;
 
-  @SubscribeMessage('join_conversation')
+  @SubscribeMessage(SOCKET_EVENTS.JOIN_CONVERSATION)
   handleJoinConversation(
     @ConnectedSocket() client: Socket,
     @MessageBody() conversationId: string,
@@ -26,7 +27,7 @@ export class MessagesGateway {
     client.join(`conversation:${conversationId}`);
   }
 
-  @SubscribeMessage('leave_conversation')
+  @SubscribeMessage(SOCKET_EVENTS.LEAVE_CONVERSATION)
   handleLeaveConversation(
     @ConnectedSocket() client: Socket,
     @MessageBody() conversationId: string,
@@ -34,25 +35,25 @@ export class MessagesGateway {
     client.leave(`conversation:${conversationId}`);
   }
 
-  @SubscribeMessage('typing_start')
+  @SubscribeMessage(SOCKET_EVENTS.TYPING_START)
   handleTypingStart(
     @ConnectedSocket() client: Socket,
     @MessageBody() conversationId: string,
   ) {
     const user: JwtPayload = client.data.user;
-    client.to(`conversation:${conversationId}`).emit('user_typing_start', {
+    client.to(`conversation:${conversationId}`).emit(SOCKET_EVENTS.USER_TYPING_START, {
       userId: user.sub,
       conversationId,
     });
   }
 
-  @SubscribeMessage('typing_stop')
+  @SubscribeMessage(SOCKET_EVENTS.TYPING_STOP)
   handleTypingStop(
     @ConnectedSocket() client: Socket,
     @MessageBody() conversationId: string,
   ) {
     const user: JwtPayload = client.data.user;
-    client.to(`conversation:${conversationId}`).emit('user_typing_stop', {
+    client.to(`conversation:${conversationId}`).emit(SOCKET_EVENTS.USER_TYPING_STOP, {
       userId: user.sub,
       conversationId,
     });
@@ -62,7 +63,7 @@ export class MessagesGateway {
   broadcastNewMessage(conversationId: string, message: any) {
     this.server
       .to(`conversation:${conversationId}`)
-      .emit('new_message', message);
+      .emit(SOCKET_EVENTS.NEW_MESSAGE, message);
   }
 
   broadcastMessageUpdate(
@@ -72,12 +73,12 @@ export class MessagesGateway {
   ) {
     this.server
       .to(`conversation:${conversationId}`)
-      .emit('message_updated', { messageId, content });
+      .emit(SOCKET_EVENTS.MESSAGE_UPDATED, { messageId, content });
   }
 
   broadcastMessageDelete(conversationId: string, messageId: string) {
     this.server
       .to(`conversation:${conversationId}`)
-      .emit('message_deleted', { messageId });
+      .emit(SOCKET_EVENTS.MESSAGE_DELETED, { messageId });
   }
 }
