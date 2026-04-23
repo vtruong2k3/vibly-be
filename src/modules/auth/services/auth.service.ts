@@ -9,6 +9,9 @@ import {
 import { PrismaService } from '../../../database/prisma/prisma.service';
 import { PasswordService } from './password.service';
 import { TokenService } from './token.service';
+import type { Cache } from 'cache-manager';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Inject } from '@nestjs/common';
 
 import { RegisterDto } from '../dto/register.dto';
 import { LoginDto } from '../dto/login.dto';
@@ -27,10 +30,27 @@ export class AuthService {
     private readonly passwordService: PasswordService,
     private readonly tokenService: TokenService,
     private readonly mailService: MailService,
-  ) {}
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+  ) { }
 
   // === REGISTER ===
   async register(dto: RegisterDto) {
+    // 1. Check Invite-Only Mode
+    const cacheKey = 'system_setting:INVITE_ONLY';
+    let isInviteOnly = await this.cacheManager.get<boolean>(cacheKey);
+
+    if (isInviteOnly === undefined || isInviteOnly === null) {
+      const setting = await this.prisma.systemSetting.findUnique({
+        where: { key: 'INVITE_ONLY' },
+      });
+      isInviteOnly = setting?.value === 'true';
+      await this.cacheManager.set(cacheKey, isInviteOnly, 60000); // 60s
+    }
+
+    if (isInviteOnly) {
+      throw new ConflictException('Vibly is currently in invite-only mode. Public registration is temporarily disabled.');
+    }
+
     // Check for existing email/username — generic error to prevent enumeration (OWASP)
     const existing = await this.prisma.user.findFirst({
       where: {

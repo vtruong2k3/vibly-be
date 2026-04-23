@@ -9,12 +9,16 @@ import {
   PostStatus,
   CommentStatus,
 } from '@prisma/client';
+import { AdminGateway } from '../../admin/admin.gateway';
 
 @Injectable()
 export class ModerationService {
   private readonly logger = new Logger(ModerationService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly adminGateway: AdminGateway,
+  ) { }
 
   // POST /moderation/report — Any user can report
   async createReport(reporterUserId: string, dto: CreateReportDto) {
@@ -46,6 +50,10 @@ export class ModerationService {
     this.logger.log(
       `Report ${report.id} created by ${reporterUserId} on ${dto.targetType}:${dto.targetId}`,
     );
+
+    // Push real-time event to Admin Dashboard
+    this.adminGateway.broadcastNewReport(report);
+
     return report;
   }
 

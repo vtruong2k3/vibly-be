@@ -14,7 +14,37 @@ import { RedisIoAdapter } from './common/adapters/redis-io.adapter';
 import cookieParser from 'cookie-parser';
 import { LoggingInterceptor } from 'src/common/interceptors/logging.interceptor';
 
+// ─── Process-level error guards ──────────────────────────────────────────────
+// Redis (and BullMQ) occasionally emit transient socket errors ('SocketClosedUnexpectedlyError')
+// that bubble as unhandled `error` events. Without this guard the Node process crashes.
+const TRANSIENT_ERRORS = new Set([
+  'SocketClosedUnexpectedlyError',
+  'ERR_SOCKET_CLOSED',
+  'ECONNRESET',
+  'ECONNREFUSED',
+]);
+
+process.on('uncaughtException', (err: NodeJS.ErrnoException) => {
+  if (TRANSIENT_ERRORS.has(err.name) || TRANSIENT_ERRORS.has(err.code ?? '')) {
+    console.warn('[Process] Transient infrastructure error (Redis/BullMQ) — ignored:', err.message);
+    return; // keep the process alive; the Redis client will reconnect automatically
+  }
+  console.error('[Process] Uncaught exception — exiting:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  const err = reason instanceof Error ? reason : new Error(String(reason));
+  if (TRANSIENT_ERRORS.has(err.name)) {
+    console.warn('[Process] Transient unhandled rejection (Redis/BullMQ) — ignored:', err.message);
+    return;
+  }
+  console.error('[Process] Unhandled rejection — exiting:', err);
+  process.exit(1);
+});
+
 async function bootstrap() {
+
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log', 'debug'],
   });

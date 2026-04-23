@@ -59,6 +59,10 @@ export const SOCKET_EVENTS = {
     WEBRTC_SDP: 'webrtc_sdp',
     /** Client ↔ Client (relayed): WebRTC ICE candidate */
     WEBRTC_ICE: 'webrtc_ice',
+
+    // ─── Admin / Moderation ───────────────────────────────────────────────────
+    /** Server → Admin: new report filed (manual or auto-mod) */
+    ADMIN_NEW_REPORT: 'admin:new_report',
 } as const;
 
 export type SocketEvent = (typeof SOCKET_EVENTS)[keyof typeof SOCKET_EVENTS];

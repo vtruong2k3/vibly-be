@@ -53,6 +53,10 @@ export class PresenceGateway
       // Join a personal room to receive targeted notifications/messages easily
       client.join(`user:${userId}`);
 
+      if (payload.role === 'ADMIN' || payload.role === 'MODERATOR') {
+        client.join('admin_room');
+      }
+
       // Broadcast to friends that user is online
       this.broadcastStatus(userId, true);
     } catch (error) {

@@ -65,6 +65,8 @@ model User {
   // Report relations with admin roles
   reportsModerating       Report[]                  @relation("ReportModerator")
   reportsResolved         Report[]                  @relation("ReportResolver")
+  // Auto-Moderation
+  createdKeywords         BlacklistedKeyword[]      @relation("BlacklistedKeywordCreator")
 
   @@index([status])
   @@index([createdAt])
@@ -865,4 +867,27 @@ enum ModerationActionType {
   WARN_USER
   RESTORE
   DELETE_MESSAGE
+}
+
+model BlacklistedKeyword {
+  id        String         @id @default(uuid()) @db.Uuid
+  keyword   String         @unique @db.VarChar(120)
+  severity  ReportSeverity @default(HIGH)
+  createdBy String         @map("created_by") @db.Uuid
+  createdAt DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  creator   User           @relation("BlacklistedKeywordCreator", fields: [createdBy], references: [id])
+
+  @@index([severity])
+  @@map("blacklisted_keywords")
+}
+
+model SystemSetting {
+  key         String   @id @db.VarChar(100) // e.g., 'MAINTENANCE_MODE', 'INVITE_ONLY'
+  value       String   @db.Text             // Stringified JSON or plain text
+  type        String   @default("BOOLEAN")  @db.VarChar(20) // BOOLEAN, NUMBER, STRING
+  description String?  @db.Text
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy   String?  @map("updated_by") @db.Uuid
+
+  @@map("system_settings")
 }

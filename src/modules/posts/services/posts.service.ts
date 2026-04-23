@@ -13,6 +13,8 @@ import { ReactDto } from '../dto/react.dto';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 import { PostsGateway } from '../gateways/posts.gateway';
 import { FeedService } from '../../feed/services/feed.service';
+import { AutoModerationService } from '../../moderation/services/auto-moderation.service';
+import { AdminGateway } from '../../admin/admin.gateway';
 
 // Shared field selection — never expose passwordHash or sensitive data
 const POST_SELECT = {
@@ -59,6 +61,8 @@ export class PostsService {
     private readonly notificationsService: NotificationsService,
     private readonly postsGateway: PostsGateway,
     private readonly feedService: FeedService,
+    private readonly autoMod: AutoModerationService,
+    private readonly adminGateway: AdminGateway,
   ) { }
 
   // POST /posts
@@ -67,13 +71,17 @@ export class PostsService {
       throw new BadRequestException('Post must have content or media');
     }
 
+    // Phase 1 Auto-Moderation: Scan content for blacklisted keywords
+    const isBad = await this.autoMod.containsBlacklistedKeyword(dto.content ?? '');
+    const initialStatus = isBad ? PostStatus.HIDDEN : PostStatus.PUBLISHED;
+
     const post = await this.prisma.$transaction(async (tx) => {
       const newPost = await tx.post.create({
         data: {
           authorUserId: userId,
           content: dto.content,
           visibility: dto.visibility ?? VisibilityLevel.FRIENDS,
-          status: PostStatus.PUBLISHED,
+          status: initialStatus,
           publishedAt: new Date(),
         },
         select: POST_SELECT,
@@ -93,6 +101,25 @@ export class PostsService {
 
       return newPost;
     });
+
+    if (isBad) {
+      // Auto-report for admin review
+      const autoReport = await this.prisma.report.create({
+        data: {
+          reporterUserId: userId, // System auto-reports using author's ID as reporter (or a SYSTEM user if available, but for simplicity we use author with a special reasonCode)
+          targetType: 'POST',
+          targetId: post.id,
+          reasonCode: 'AUTO_MODERATION_FLAG',
+          reasonText: 'Hệ thống phát hiện có chứa từ khóa nhạy cảm / bị cấm.',
+          severity: 'HIGH',
+        },
+      });
+      // Emit to Admins
+      this.adminGateway.broadcastNewReport(autoReport);
+
+      // Do not fan-out
+      return post;
+    }
 
     // Fire-and-forget fan-out: push FeedEdge rows to all friends asynchronously
     // This does NOT await — the HTTP response returns immediately
@@ -267,6 +294,9 @@ export class PostsService {
       if (!parent) throw new NotFoundException('Parent comment not found');
     }
 
+    const isBad = await this.autoMod.containsBlacklistedKeyword(dto.content);
+    const initialStatus = isBad ? CommentStatus.HIDDEN : CommentStatus.PUBLISHED;
+
     const comment = await this.prisma.$transaction(async (tx) => {
       const newComment = await tx.comment.create({
         data: {
@@ -274,7 +304,7 @@ export class PostsService {
           authorUserId: userId,
           content: dto.content,
           parentCommentId: dto.parentCommentId,
-          status: CommentStatus.PUBLISHED,
+          status: initialStatus,
         },
         select: {
           id: true,
@@ -308,6 +338,24 @@ export class PostsService {
 
       return newComment;
     });
+
+    if (isBad) {
+      // Auto-report
+      const autoReport = await this.prisma.report.create({
+        data: {
+          reporterUserId: userId,
+          targetType: 'COMMENT',
+          targetId: comment.id,
+          reasonCode: 'AUTO_MODERATION_FLAG',
+          reasonText: 'Hệ thống phát hiện có chứa từ khóa nhạy cảm / bị cấm.',
+          severity: 'HIGH',
+        },
+      });
+
+      this.adminGateway.broadcastNewReport(autoReport);
+
+      return comment;
+    }
 
     // Broadcast real-time new comment to all clients
     this.postsGateway.broadcastNewComment(postId, comment);

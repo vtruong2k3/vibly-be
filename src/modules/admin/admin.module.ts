@@ -2,6 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ScheduleModule } from '@nestjs/schedule';
+import { CacheModule } from '@nestjs/cache-manager';
 
 // Auth
 import { AdminAuthController } from './auth/admin-auth.controller';
@@ -39,16 +40,30 @@ import { MediaQuarantineService } from './media/media-quarantine.service';
 // Revoker
 import { RevokerService } from './revoker/revoker.service';
 
+// Moderation Settings
+import { AdminModerationController } from './moderation/admin-moderation.controller';
+import { AdminModerationService } from './moderation/admin-moderation.service';
+
+// System Settings
+import { AdminSettingsController } from './settings/admin-settings.controller';
+import { AdminSettingsService } from './settings/admin-settings.service';
+
+// Gateways
+import { AdminGateway } from './admin.gateway';
+
 // External modules
 import { AuthModule } from '../auth/auth.module';
 import { PresenceModule } from '../presence/presence.module';
+import { ModerationModule } from '../moderation/moderation.module';
 
 @Module({
   imports: [
     PassportModule,                    // Required for Passport strategies
     JwtModule.register({}),            // Secrets injected at runtime per-sign
     ScheduleModule.forRoot(),          // Enables @Cron for media purge CronJob
+    CacheModule.register(),            // Inject Memory Cache for CACHE_MANAGER
     AuthModule,                        // Re-use PasswordService + TokenService
+    forwardRef(() => ModerationModule),// Import AutoModerationService for Keyword CRUD
     forwardRef(() => PresenceModule),  // Revoker → PresenceGateway (breaks circular dep)
   ],
   controllers: [
@@ -59,6 +74,8 @@ import { PresenceModule } from '../presence/presence.module';
     AdminReportsController,
     AdminAnalyticsController,
     AdminAuditController,
+    AdminModerationController,
+    AdminSettingsController,
   ],
   providers: [
     // Passport
@@ -74,10 +91,14 @@ import { PresenceModule } from '../presence/presence.module';
     AdminAuditService,
     MediaQuarantineService,
     RevokerService,
+    AdminModerationService,
+    AdminSettingsService,
+    AdminGateway,
   ],
   exports: [
     AdminAuditService, // Allow other modules to write audit logs
     RevokerService,    // Allow other modules to revoke sessions
+    AdminGateway,      // Allow other modules to emit to admin_room
   ],
 })
-export class AdminModule {}
+export class AdminModule { }
