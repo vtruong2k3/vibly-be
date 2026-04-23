@@ -24,7 +24,7 @@ export class GoogleAuthController {
   constructor(
     private readonly googleAuthService: GoogleAuthService,
     private readonly config: ConfigService,
-  ) {}
+  ) { }
 
   /**
    * GET /api/v1/auth/google
@@ -113,18 +113,9 @@ export class GoogleAuthController {
         res,
       );
 
-      // Store access token in a short-lived, path-scoped readable cookie.
-      // Frontend JS reads it once on /auth/callback and discards immediately.
-      // Never leaks via URL, Referer headers, or browser history.
-      res.cookie('oauth_access_token', accessToken, {
-        httpOnly: false,
-        secure: isProduction,
-        sameSite: 'lax',
-        path: '/auth/callback',
-        maxAge: 60 * 1000, // 60 seconds — read once and discard
-      });
-
-      res.redirect(`${successUrl}?auth=success`);
+      // For cross-domain OAuth (Koyeb BE -> Vercel FE), cookies with SameSite/Domain issues fail to be read by frontend.
+      // So we pass the access token in the query params. The frontend will consume it and replace the router strictly.
+      res.redirect(`${successUrl}?auth=success&token=${accessToken}`);
     } catch (err: unknown) {
       const reason =
         err instanceof Error
