@@ -9,7 +9,7 @@
   "scripts": {
     "heroku-prebuild": "pnpm install --frozen-lockfile",
     "build": "nest build",
-    "heroku-build": "nest build",
+    "heroku-build": "prisma generate && nest build",
     "heroku-postbuild": "pnpm prune --prod",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "node dist/main",
