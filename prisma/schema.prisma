@@ -67,9 +67,15 @@ model User {
   reportsResolved         Report[]                  @relation("ReportResolver")
   // Auto-Moderation
   createdKeywords         BlacklistedKeyword[]      @relation("BlacklistedKeywordCreator")
+  // Verified Badge
+  isVerified              Boolean                   @default(false) @map("is_verified")
+  verifiedAt              DateTime?                 @map("verified_at") @db.Timestamptz(6)
+  verificationRequests    VerificationRequest[]     @relation("VerificationRequestUser")
+  reviewedVerifications   VerificationRequest[]     @relation("VerificationRequestReviewer")
 
   @@index([status])
   @@index([createdAt])
+  @@index([isVerified])
   @@map("users")
 }
 
@@ -691,6 +697,29 @@ model AdminTotpBackupCode {
   @@map("admin_totp_backup_codes")
 }
 
+model VerificationRequest {
+  id             String             @id @default(uuid()) @db.Uuid
+  userId         String             @map("user_id") @db.Uuid
+  status         VerificationStatus @default(PENDING)
+  idType         String             @map("id_type") @db.VarChar(60)  // "CCCD", "PASSPORT", etc.
+  frontDocUrl    String             @map("front_doc_url")
+  backDocUrl     String?            @map("back_doc_url")
+  selfieUrl      String             @map("selfie_url")
+  legalName      String             @map("legal_name") @db.VarChar(150)
+  reviewerId     String?            @map("reviewer_id") @db.Uuid
+  reviewNote     String?            @map("review_note")
+  reviewedAt     DateTime?          @map("reviewed_at") @db.Timestamptz(6)
+  submittedAt    DateTime           @default(now()) @map("submitted_at") @db.Timestamptz(6)
+  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user           User               @relation("VerificationRequestUser", fields: [userId], references: [id], onDelete: Cascade)
+  reviewer       User?              @relation("VerificationRequestReviewer", fields: [reviewerId], references: [id])
+
+  @@index([userId, status])
+  @@index([status, submittedAt])
+  @@map("verification_requests")
+}
+
 enum AuthProvider {
   LOCAL
   GOOGLE
@@ -707,6 +736,13 @@ enum UserStatus {
   SUSPENDED
   BANNED
   DELETED
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REVOKED
 }
 
 enum PrivacyVisibility {

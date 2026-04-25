@@ -32,6 +32,7 @@ const POST_SELECT = {
     select: {
       id: true,
       username: true,
+      isVerified: true,
       profile: { select: { displayName: true, avatarMediaId: true, avatarMedia: { select: { bucket: true, objectKey: true } } } },
     },
   },
@@ -317,6 +318,7 @@ export class PostsService {
             select: {
               id: true,
               username: true,
+              isVerified: true,
               profile: { select: { displayName: true, avatarMediaId: true, avatarMedia: { select: { bucket: true, objectKey: true } } } },
             },
           },
@@ -398,6 +400,7 @@ export class PostsService {
           select: {
             id: true,
             username: true,
+            isVerified: true,
             profile: { select: { displayName: true, avatarMediaId: true, avatarMedia: { select: { bucket: true, objectKey: true } } } },
           },
         },

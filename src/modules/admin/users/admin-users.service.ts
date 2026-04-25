@@ -20,7 +20,7 @@ export class AdminUsersService {
     private readonly prisma: PrismaService,
     private readonly auditService: AdminAuditService,
     private readonly revokerService: RevokerService,
-  ) {}
+  ) { }
 
   // List users with filters + cursor pagination
   async getUsers(params: {
@@ -58,6 +58,8 @@ export class AdminUsersService {
         email: true,
         role: true,
         status: true,
+        isVerified: true,
+        verifiedAt: true,
         emailVerifiedAt: true,
         lastLoginAt: true,
         createdAt: true,
@@ -86,6 +88,8 @@ export class AdminUsersService {
         email: true,
         role: true,
         status: true,
+        isVerified: true,
+        verifiedAt: true,
         totpEnabled: true,
         emailVerifiedAt: true,
         lastLoginAt: true,

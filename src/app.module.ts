@@ -36,6 +36,9 @@ import { CallsModule } from './modules/calls/calls.module';
 import { ModerationModule } from './modules/moderation/moderation.module';
 import { AdminModule } from './modules/admin/admin.module';
 
+// ── Phase 8 ───────────────────────────────────────
+import { VerificationModule } from './modules/verification/verification.module';
+
 @Module({
   imports: [
     // Config: load all namespaced configs, validate env at startup
@@ -87,8 +90,11 @@ import { AdminModule } from './modules/admin/admin.module';
     CallsModule,
     ModerationModule,
     AdminModule,
+
+    // ── Phase 8 ────────
+    VerificationModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
-export class AppModule {}
+export class AppModule { }

@@ -11,7 +11,7 @@ import { SearchUsersDto } from '../dto/search-users.dto';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   // GET /me — current authenticated user with profile
   async getMe(userId: string) {
@@ -23,6 +23,7 @@ export class UsersService {
         username: true,
         role: true,
         status: true,
+        isVerified: true,
         emailVerifiedAt: true,
         lastLoginAt: true,
         createdAt: true,
@@ -97,6 +98,7 @@ export class UsersService {
         id: true,
         username: true,
         createdAt: true,
+        isVerified: true,
         profile: {
           select: {
             displayName: true,
@@ -168,6 +170,7 @@ export class UsersService {
       select: {
         id: true,
         username: true,
+        isVerified: true,
         profile: {
           select: { displayName: true, avatarMediaId: true },
         },
